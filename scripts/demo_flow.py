@@ -118,14 +118,16 @@ def _consume_briefing(
         )
         print(f"  first_actions[0] mentions top fix '{top_fix_type}': OK")
 
-    # 4c: no first_action should mention rollback for incidents where rollback has failed
+    # 4c: no first_action should mention an undo/rollback verb for incidents where that
+    # fix's ledger failures exceed its successes
     if check_no_rollback:
+        undo_synonyms = ("rollback", "roll back", "revert", "undo")
         for action in sections.get("first_actions", []):
             action_lower = action.lower()
-            assert "rollback" not in action_lower and "roll back" not in action_lower, (
-                f"first_action mentions rollback but it was failed-only: {action!r}"
+            assert not any(syn in action_lower for syn in undo_synonyms), (
+                f"first_action mentions an undo/rollback verb but that fix's failures exceed its successes: {action!r}"
             )
-        print("  no rollback in first_actions (failed-only fix excluded): OK")
+        print("  no rollback/revert/undo in first_actions (risky fix excluded): OK")
 
 
 

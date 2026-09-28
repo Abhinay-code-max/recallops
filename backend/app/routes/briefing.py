@@ -14,17 +14,21 @@ LLM.
 Grounding guard (Prompt 4c): post-validate that:
   - first_actions[0] mentions the top-ranked fix type (regenerate once then template if
     not -- the template always obeys this rule).
-  - NO first_action recommends a fix_type that has only failed in the ledger (detected by
-    matching common verb forms: "rollback"/"roll back" etc against the fix_type labels and
-    words). Regenerate once then template if violated.
+  - NO first_action recommends a fix_type whose ledger failures exceed its successes
+    (worked + partial) -- detected by matching common undo verb forms ("rollback",
+    "roll back", "revert", "undo", case-insensitive) plus fix_type label word overlap.
+    Regenerate once then template if violated.
 
-When memory_state is "matched", cited_incident_ids must be non-empty after validation;
-otherwise regenerate once, then template (template citations come from the top recalled
-evidence ids, not LLM text).
+When memory_state is "matched", cited_incident_ids must be non-empty after validation and
+must include at least the top 3 recalled pattern incidents (evidence ids, already ordered
+by recall relevance) -- otherwise regenerate once, then template (template citations come
+from the top recalled evidence ids, not LLM text).
 
 BriefingSections gains a `sources` field: {root_cause:[ids], first_actions:[ids],
 last_fixed_by:id|null} -- populated by extracting all INC-xxx references from each
-sub-field of the validated sections.
+sub-field of the validated sections, except last_fixed_by which is always computed
+independently as the most recent recalled evidence incident whose fix outcome was
+"worked" (never taken from LLM text).
 
 SSE token events are sent in chunks of ~_TOKEN_CHUNK_SIZE chars with ~20 ms between
 them so the UI can render a real streaming experience.
@@ -69,13 +73,33 @@ def _cited_incident_ids(sections: dict[str, Any]) -> set[str]:
     return extract_incident_ids(text)
 
 
-def _sources_from_sections(sections: dict[str, Any]) -> dict[str, Any]:
-    """Populate sources by extracting INC-xxx refs from each BriefingSections sub-field."""
+def _most_recent_worked_incident(evidence_ids: list[str]) -> str | None:
+    """Most recent recalled evidence incident with at least one fix outcome of "worked"."""
+    best_id: str | None = None
+    best_ts: str | None = None
+    for eid in evidence_ids:
+        incident = incidents.get_incident(eid)
+        if not incident:
+            continue
+        if any(fa.get("outcome") == "worked" for fa in incident.get("fix_attempts", []) or []):
+            ts = incident.get("date", "")
+            if best_ts is None or ts > best_ts:
+                best_id, best_ts = eid, ts
+    return best_id
+
+
+def _sources_from_sections(sections: dict[str, Any], evidence_ids: list[str]) -> dict[str, Any]:
+    """Populate sources by extracting INC-xxx refs from each BriefingSections sub-field.
+    last_fixed_by is never taken from LLM text -- always the most recent recalled
+    evidence incident whose fix worked (CLAUDE.md: never let the model cite an ID it
+    invented, and last_fixed_by is a factual claim, not a narrative one)."""
     root_cause_ids = sorted(extract_incident_ids(str(sections.get("root_cause", ""))))
     first_actions_ids = sorted(extract_incident_ids(" ".join(sections.get("first_actions", []) or [])))
-    last_fixed_by_id_set = extract_incident_ids(str(sections.get("last_fixed_by") or ""))
-    last_fixed_by_id = next(iter(last_fixed_by_id_set), None)
-    return {"root_cause": root_cause_ids, "first_actions": first_actions_ids, "last_fixed_by": last_fixed_by_id}
+    return {
+        "root_cause": root_cause_ids,
+        "first_actions": first_actions_ids,
+        "last_fixed_by": _most_recent_worked_incident(evidence_ids),
+    }
 
 
 def _fix_words(fix_type: str) -> set[str]:
@@ -83,15 +107,20 @@ def _fix_words(fix_type: str) -> set[str]:
     return set(re.split(r"[_\s]+", fix_type.lower()))
 
 
-def _action_mentions_failed_fix(action: str, failed_fix_types: list[str]) -> bool:
-    """True if a first_action text appears to recommend a fix that has only failed."""
+_UNDO_SYNONYMS = ("rollback", "roll back", "revert", "undo")
+
+
+def _action_mentions_failed_fix(action: str, risky_fix_types: list[str]) -> bool:
+    """True if a first_action text appears to recommend a fix whose ledger failures
+    exceed its successes (worked + partial). Any undo/rollback-style verb (rollback,
+    roll back, revert, undo -- case-insensitive) in the action is treated as recommending
+    one of those risky fixes, regardless of the specific fix_type wording, since undoing
+    the last change is exactly the class of action those fixes represent."""
     action_lower = action.lower()
-    for ftype in failed_fix_types:
+    if risky_fix_types and any(syn in action_lower for syn in _UNDO_SYNONYMS):
+        return True
+    for ftype in risky_fix_types:
         words = _fix_words(ftype)
-        # Special-case common synonyms
-        if "rollback" in words or "rollback_to_previous_deploy" == ftype:
-            if "rollback" in action_lower or "roll back" in action_lower:
-                return True
         if "restart" in words:
             if "restart" in action_lower:
                 return True
@@ -104,7 +133,7 @@ def _action_mentions_failed_fix(action: str, failed_fix_types: list[str]) -> boo
 def _validate_grounding(
     sections: dict[str, Any],
     top_fix_type: str | None,
-    failed_only_fix_types: list[str],
+    risky_fix_types: list[str],
     allowed_ids: set[str],
     memory_state: str,
 ) -> str | None:
@@ -123,8 +152,8 @@ def _validate_grounding(
             return f"first_actions[0] does not mention top ranked fix '{top_fix_type}'"
 
     for action in sections.get("first_actions", []):
-        if _action_mentions_failed_fix(action, failed_only_fix_types):
-            return f"first_action recommends a failed-only fix: '{action}'"
+        if _action_mentions_failed_fix(action, risky_fix_types):
+            return f"first_action recommends a fix whose ledger failures exceed its successes: '{action}'"
 
     return None  # clean
 
@@ -137,7 +166,7 @@ def _build_prompt(
     team_hint: dict[str, Any] | None,
     recurrence: dict[str, Any] | None,
     top_fix_type: str | None,
-    failed_only_fix_types: list[str],
+    risky_fix_types: list[str],
 ) -> list[dict[str, str]]:
     evidence_text = "\n\n".join(
         f"Incident {e['incident_id']} ({e.get('service')}, {e.get('severity')}, {e.get('date')}):\n"
@@ -157,11 +186,11 @@ def _build_prompt(
         ]
         ranked_text = "Ranked fixes (use the top one as first_actions[0]):\n" + "\n".join(ranked_lines)
 
-    failed_text = ""
-    if failed_only_fix_types:
-        failed_text = (
-            f"\nFAILED-ONLY fixes (do NOT recommend these in any first_action, not even as a last resort): "
-            f"{', '.join(failed_only_fix_types)}"
+    risky_text = ""
+    if risky_fix_types:
+        risky_text = (
+            f"\nRISKY fixes -- ledger failures exceed successes (do NOT recommend these in any "
+            f"first_action, not even as a last resort): {', '.join(risky_fix_types)}"
         )
 
     recurrence_text = f"\nRecurrence: {recurrence['message']}" if recurrence else ""
@@ -174,7 +203,7 @@ def _build_prompt(
         "other incident ID, and never make one up.\n"
         f"RULES:\n"
         f"  1. first_actions[0] MUST recommend the top-ranked fix: '{top_fix_type}'.\n"
-        f"  2. No first_action may recommend any fix that has ONLY failed before.\n"
+        f"  2. No first_action may recommend any fix whose ledger failures exceed its successes.\n"
         f"  3. Cite at least one evidence incident ID somewhere in root_cause or first_actions.\n"
         'Respond with strict JSON only: '
         '{"root_cause": string, "blast_radius": string, '
@@ -186,7 +215,7 @@ def _build_prompt(
         f"Symptoms: {incident.get('symptoms')}\n"
         f"Error: {incident.get('error_message')}\n\n"
         f"Evidence (only these incidents may be cited):\n{evidence_text or '(none)'}\n\n"
-        f"{ranked_text}{failed_text}{recurrence_text}{team_text}"
+        f"{ranked_text}{risky_text}{recurrence_text}{team_text}"
     )
     return [{"role": "system", "content": system}, {"role": "user", "content": user}]
 
@@ -232,10 +261,11 @@ def template_sections(
     pool = incidents.pattern_pool(top_id)
     computed_team_hint = team_hint or incidents.compute_team_hint(pool)
 
-    # Build first_actions grounded in ranked_fixes (top fix first, skip failed-only)
+    # Build first_actions grounded in ranked_fixes (top fix first, skip risky fixes --
+    # ledger failures exceed successes)
     rfs = ranked_fixes or []
-    failed_only = {f["fix_type"] for f in rfs if f.get("worked", 0) == 0 and f.get("partial", 0) == 0 and f.get("failed", 0) > 0}
-    candidate_fixes = [f for f in rfs if f["fix_type"] not in failed_only]
+    risky = {f["fix_type"] for f in rfs if f.get("failed", 0) > f.get("worked", 0) + f.get("partial", 0)}
+    candidate_fixes = [f for f in rfs if f["fix_type"] not in risky]
 
     first_action_0 = f"Apply the top-ranked fix: {candidate_fixes[0]['label'] if candidate_fixes else 'see ranked fixes panel'} (from {top_id})."
     first_actions = [
@@ -249,7 +279,11 @@ def template_sections(
         "blast_radius": f"{service} affected, matching the pattern from {top_id}.",
         "first_actions": first_actions,
         "last_fixed_by": (computed_team_hint or {}).get("person"),
-        "sources": {"root_cause": [top_id], "first_actions": [top_id], "last_fixed_by": None},
+        "sources": {
+            "root_cause": [top_id],
+            "first_actions": [top_id],
+            "last_fixed_by": _most_recent_worked_incident(evidence_ids),
+        },
     }
 
 
@@ -269,19 +303,22 @@ async def generate_sections(incident: dict[str, Any]) -> tuple[dict[str, Any], l
     team_hint: dict[str, Any] | None = incident.get("team_hint")
     recurrence: dict[str, Any] | None = incident.get("recurrence")
 
-    # Determine top fix and failed-only fixes for grounding validation
+    # Determine top fix and risky fixes (ledger failures exceed successes) for grounding validation
     top_fix_type: str | None = ranked_fixes[0]["fix_type"] if ranked_fixes else None
-    failed_only_fix_types: list[str] = [
+    risky_fix_types: list[str] = [
         f["fix_type"]
         for f in ranked_fixes
-        if f.get("worked", 0) == 0 and f.get("partial", 0) == 0 and f.get("failed", 0) > 0
+        if f.get("failed", 0) > f.get("worked", 0) + f.get("partial", 0)
     ]
+
+    # Top 3 recalled pattern incidents (evidence_ids is already relevance-ordered by recall)
+    top3_evidence_ids = sorted(evidence_ids[:3])
 
     if evidence_ids:
         evidence = [e for e in (incidents.get_incident(eid) for eid in evidence_ids) if e is not None]
         messages = _build_prompt(
             incident, evidence, ranked_fixes, warnings_list, team_hint, recurrence,
-            top_fix_type, failed_only_fix_types,
+            top_fix_type, risky_fix_types,
         )
 
         for _attempt in range(2):
@@ -302,17 +339,21 @@ async def generate_sections(incident: dict[str, Any]) -> tuple[dict[str, Any], l
             except Exception:
                 continue
 
-            violation = _validate_grounding(sections, top_fix_type, failed_only_fix_types, allowed, memory_state)
+            violation = _validate_grounding(sections, top_fix_type, risky_fix_types, allowed, memory_state)
             if violation is None:
-                # Populate sources from validated sections
-                sections["sources"] = _sources_from_sections(sections)
-                cited = sorted(_cited_incident_ids(sections))
-                return sections, cited
+                # Populate sources from validated sections (last_fixed_by always computed,
+                # never taken from LLM text)
+                sections["sources"] = _sources_from_sections(sections, evidence_ids)
+                cited = set(_cited_incident_ids(sections))
+                if memory_state == "matched":
+                    # Always cite at least the top 3 recalled pattern incidents
+                    cited |= set(top3_evidence_ids)
+                return sections, sorted(cited)
 
     # Template fallback: always cites the top evidence id
     tmpl = template_sections(incident, ranked_fixes=ranked_fixes, team_hint=team_hint)
-    # Template citations come from evidence_ids (not LLM text)
-    template_cited = sorted(evidence_ids[:2]) if evidence_ids else []
+    # Template citations come from evidence_ids (not LLM text); top 3 when matched
+    template_cited = top3_evidence_ids if memory_state == "matched" else (sorted(evidence_ids[:2]) if evidence_ids else [])
     return tmpl, template_cited
 
 
