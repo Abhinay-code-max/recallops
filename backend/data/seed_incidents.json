@@ -1,0 +1,689 @@
+[
+  {
+    "incident_id": "INC-001",
+    "document_id": "incident-INC-001",
+    "service": "search-api",
+    "severity": "SEV3",
+    "timestamp": "2026-05-12T09:14:22Z",
+    "title": "Search latency spike after catalog-v2 mapping migration",
+    "symptoms": "p95 latency for /search/products jumped from 120ms to 2.4s after the catalog-v2 OpenSearch mapping migration; timeouts on the product listing page.",
+    "error_signature": "search_slow_query_missing_index",
+    "log_snippet": "2026-05-12T09:14:22Z WARN search-api [query-executor] slow_query index=catalog-v2 query_id=8841 duration_ms=2402 filter=category_id:null fallback=script_score\np95_latency=2400ms error_rate=1.8% index_docs=1832004",
+    "root_cause": "The catalog-v2 OpenSearch mapping migration removed the category_id keyword sub-field; term-filter queries fell back to scripted filtering across the entire index.",
+    "fix_attempts": [
+      {
+        "fix_type": "reindex_with_keyword_subfield_restored",
+        "outcome": "worked",
+        "minutes_to_effect": 22,
+        "resolver": "Sofia Martinez",
+        "notes": "reindexed catalog-v2 with the category_id keyword sub-field restored"
+      }
+    ],
+    "resolution": "Reindexing catalog-v2 with the keyword sub-field restored returned latency to baseline.",
+    "resolver": "Sofia Martinez",
+    "postmortem": "Mapping migrations must be diffed against query-executor filter fields before rollout; added a pre-deploy mapping diff check to the search-api CI pipeline.",
+    "pattern_tags": [],
+    "permanent_fix_open": false,
+    "total_minutes_to_resolve": 22,
+    "text": "Date: 2026-05-12T09:14:22Z | INC-001 | search-api | SEV3\nSymptoms: p95 latency for /search/products jumped from 120ms to 2.4s after the catalog-v2 OpenSearch mapping migration; timeouts on the product listing page.\nRoot cause: The catalog-v2 OpenSearch mapping migration removed the category_id keyword sub-field; term-filter queries fell back to scripted filtering across the entire index.\nFixes tried: 1) reindex_with_keyword_subfield_restored -> worked (Sofia Martinez, 22 min, reindexed catalog-v2 with the category_id keyword sub-field restored).\nResolver: Sofia Martinez.\nTime to resolve: 22 min."
+  },
+  {
+    "incident_id": "INC-002",
+    "document_id": "incident-INC-002",
+    "service": "payments-api",
+    "severity": "SEV1",
+    "timestamp": "2026-05-15T14:32:10Z",
+    "title": "Postgres connection pool exhaustion after v2.3.0 Friday deploy",
+    "symptoms": "payments-api p99 latency above 4.8s and checkout error rate above 23% starting ~12 minutes after the v2.3.0 Friday deploy; new checkouts failing with DB connection errors.",
+    "error_signature": "postgres_pool_exhaustion",
+    "log_snippet": "2026-05-15T14:32:10Z ERROR payments-api [pool-2] org.postgresql.util.PSQLException: FATAL: remaining connection slots are reserved for non-replication superuser connections\np99_latency=4820ms error_rate=23.4% deploy=v2.3.0 (12 min ago)",
+    "root_cause": "The v2.3.0 deploy's new order-confirmation retry path opens a DB session per retry without releasing it on timeout, exhausting the 20-connection Postgres pool within minutes of Friday peak traffic.",
+    "fix_attempts": [
+      {
+        "fix_type": "rollback_to_previous_deploy",
+        "outcome": "failed",
+        "minutes_to_effect": 25,
+        "resolver": "Priya Nair",
+        "notes": "rolled back to v2.2.9; pool exhaustion persisted, sessions already leaked before rollback took effect"
+      },
+      {
+        "fix_type": "increase_postgres_pool_size",
+        "outcome": "worked",
+        "minutes_to_effect": 9,
+        "resolver": "Priya Nair",
+        "notes": "raised max pool size from 20 to 60 and force-closed stale sessions"
+      }
+    ],
+    "resolution": "Pool size increase (20 -> 60) resolved the outage; the rollback was reverted afterward.",
+    "resolver": "Priya Nair",
+    "postmortem": "Root cause (unreleased DB sessions on retry timeout in order-confirmation) is not yet fixed in code; pool resize is a workaround. Action item: add a session timeout and explicit release in order-confirmation retries -- not yet implemented.",
+    "pattern_tags": [
+      "pool-exhaustion-friday-deploy"
+    ],
+    "permanent_fix_open": false,
+    "total_minutes_to_resolve": 34,
+    "text": "Date: 2026-05-15T14:32:10Z | INC-002 | payments-api | SEV1\nSymptoms: payments-api p99 latency above 4.8s and checkout error rate above 23% starting ~12 minutes after the v2.3.0 Friday deploy; new checkouts failing with DB connection errors.\nRoot cause: The v2.3.0 deploy's new order-confirmation retry path opens a DB session per retry without releasing it on timeout, exhausting the 20-connection Postgres pool within minutes of Friday peak traffic.\nFixes tried: 1) rollback_to_previous_deploy -> failed (Priya Nair, 25 min, rolled back to v2.2.9; pool exhaustion persisted, sessions already leaked before rollback took effect); 2) increase_postgres_pool_size -> worked (Priya Nair, 9 min, raised max pool size from 20 to 60 and force-closed stale sessions).\nResolver: Priya Nair.\nTime to resolve: 34 min."
+  },
+  {
+    "incident_id": "INC-003",
+    "document_id": "incident-INC-003",
+    "service": "order-worker",
+    "severity": "SEV2",
+    "timestamp": "2026-05-18T07:05:41Z",
+    "title": "Redis OOM Monday morning after weekend queue buildup",
+    "symptoms": "order-worker job processing stalled Monday morning; Redis returning OOM errors, queue depth past 41k, order confirmation emails delayed.",
+    "error_signature": "redis_oom",
+    "log_snippet": "2026-05-18T07:05:41Z ERROR order-worker [redis-client] OOM command not allowed when used memory > 'maxmemory'.\nredis_used_memory_pct=101.2% queue_depth=41320 maxmemory_policy=noeviction",
+    "root_cause": "Weekend order volume queued jobs and cached idempotency keys in Redis without eviction; by Monday's traffic ramp Redis hit its 2GB maxmemory limit with the default noeviction policy.",
+    "fix_attempts": [
+      {
+        "fix_type": "manual_flush_stale_keys",
+        "outcome": "partial",
+        "minutes_to_effect": 14,
+        "resolver": "Ananya Iyer",
+        "notes": "freed memory temporarily; queue depth started climbing again within the hour"
+      },
+      {
+        "fix_type": "restart_redis_and_set_eviction_policy",
+        "outcome": "worked",
+        "minutes_to_effect": 11,
+        "resolver": "Ananya Iyer",
+        "notes": "restarted Redis and set maxmemory-policy to allkeys-lru"
+      }
+    ],
+    "resolution": "Redis restarted with allkeys-lru eviction; queue drained within 25 minutes total.",
+    "resolver": "Ananya Iyer",
+    "postmortem": "Eviction policy change reduces severity but does not address unbounded key growth from unexpired idempotency keys; needs a follow-up TTL fix.",
+    "pattern_tags": [
+      "redis-oom-monday"
+    ],
+    "permanent_fix_open": false,
+    "total_minutes_to_resolve": 25,
+    "text": "Date: 2026-05-18T07:05:41Z | INC-003 | order-worker | SEV2\nSymptoms: order-worker job processing stalled Monday morning; Redis returning OOM errors, queue depth past 41k, order confirmation emails delayed.\nRoot cause: Weekend order volume queued jobs and cached idempotency keys in Redis without eviction; by Monday's traffic ramp Redis hit its 2GB maxmemory limit with the default noeviction policy.\nFixes tried: 1) manual_flush_stale_keys -> partial (Ananya Iyer, 14 min, freed memory temporarily; queue depth started climbing again within the hour); 2) restart_redis_and_set_eviction_policy -> worked (Ananya Iyer, 11 min, restarted Redis and set maxmemory-policy to allkeys-lru).\nResolver: Ananya Iyer.\nTime to resolve: 25 min."
+  },
+  {
+    "incident_id": "INC-004",
+    "document_id": "incident-INC-004",
+    "service": "notification-service",
+    "severity": "SEV3",
+    "timestamp": "2026-05-20T11:47:03Z",
+    "title": "Transactional email delivery delayed by SMTP provider timeout",
+    "symptoms": "Order confirmation and shipping emails delayed 15-40 minutes; SMTP send queue backing up.",
+    "error_signature": "smtp_provider_timeout",
+    "log_snippet": "2026-05-20T11:47:03Z ERROR notification-service [email-sender] SMTPConnectTimeoutError: connect timed out after 10000ms host=smtp.primary-provider.example\nqueue_depth=2140 retry_count=3",
+    "root_cause": "Primary transactional email provider's SMTP relay intermittently timed out on connect during a regional provider outage.",
+    "fix_attempts": [
+      {
+        "fix_type": "failover_to_backup_smtp_provider",
+        "outcome": "worked",
+        "minutes_to_effect": 7,
+        "resolver": "Arjun Verma",
+        "notes": "switched SMTP_PROVIDER env flag to the backup relay"
+      }
+    ],
+    "resolution": "Failover to the backup SMTP relay cleared the backlog within 20 minutes.",
+    "resolver": "Arjun Verma",
+    "postmortem": "Add automatic health-check-based failover between SMTP providers instead of a manual flag flip.",
+    "pattern_tags": [],
+    "permanent_fix_open": false,
+    "total_minutes_to_resolve": 20,
+    "text": "Date: 2026-05-20T11:47:03Z | INC-004 | notification-service | SEV3\nSymptoms: Order confirmation and shipping emails delayed 15-40 minutes; SMTP send queue backing up.\nRoot cause: Primary transactional email provider's SMTP relay intermittently timed out on connect during a regional provider outage.\nFixes tried: 1) failover_to_backup_smtp_provider -> worked (Arjun Verma, 7 min, switched SMTP_PROVIDER env flag to the backup relay).\nResolver: Arjun Verma.\nTime to resolve: 20 min."
+  },
+  {
+    "incident_id": "INC-005",
+    "document_id": "incident-INC-005",
+    "service": "auth-service",
+    "severity": "SEV2",
+    "timestamp": "2026-05-27T16:20:55Z",
+    "title": "Login failures from JWT clock-skew after NTP drift",
+    "symptoms": "About 6% of login attempts failing with 'invalid token' errors; users logged out unexpectedly.",
+    "error_signature": "jwt_clock_skew",
+    "log_snippet": "2026-05-27T16:20:55Z ERROR auth-service [jwt-validator] TokenValidationError: token not yet valid (nbf skew=92s) node=auth-7f9c\nerror_rate=6.1% affected_node=auth-7f9c",
+    "root_cause": "NTP drift of 92 seconds on one auth-service node caused JWT nbf/iat clock-skew validation failures for tokens issued from that node.",
+    "fix_attempts": [
+      {
+        "fix_type": "resync_ntp_and_restart_node",
+        "outcome": "worked",
+        "minutes_to_effect": 13,
+        "resolver": "Emily Chen",
+        "notes": "forced chrony resync and rolled the affected pod"
+      }
+    ],
+    "resolution": "NTP resync and pod restart eliminated the clock skew; error rate returned to baseline.",
+    "resolver": "Emily Chen",
+    "postmortem": "Add per-node NTP drift alerting so this is caught before it affects token validation.",
+    "pattern_tags": [],
+    "permanent_fix_open": false,
+    "total_minutes_to_resolve": 13,
+    "text": "Date: 2026-05-27T16:20:55Z | INC-005 | auth-service | SEV2\nSymptoms: About 6% of login attempts failing with 'invalid token' errors; users logged out unexpectedly.\nRoot cause: NTP drift of 92 seconds on one auth-service node caused JWT nbf/iat clock-skew validation failures for tokens issued from that node.\nFixes tried: 1) resync_ntp_and_restart_node -> worked (Emily Chen, 13 min, forced chrony resync and rolled the affected pod).\nResolver: Emily Chen.\nTime to resolve: 13 min."
+  },
+  {
+    "incident_id": "INC-006",
+    "document_id": "incident-INC-006",
+    "service": "order-worker",
+    "severity": "SEV1",
+    "timestamp": "2026-06-03T10:02:18Z",
+    "title": "Kafka consumer lag during Summer Splash Sale",
+    "symptoms": "During the Summer Splash Sale flash promotion, order-events consumer lag climbed past 48k messages; order confirmations delayed up to 20 minutes.",
+    "error_signature": "kafka_consumer_lag",
+    "log_snippet": "2026-06-03T10:02:18Z WARN order-worker [kafka-consumer-group=order-processing] consumer lag detected partition=7 lag=48213 messages\nthroughput_msgs_sec=420 target_msgs_sec=1600 topic=order-events",
+    "root_cause": "Sale traffic pushed the produce rate to ~4x baseline; the order-processing consumer group (3 replicas) could not keep pace with partition throughput.",
+    "fix_attempts": [
+      {
+        "fix_type": "increase_topic_partition_count_live",
+        "outcome": "failed",
+        "minutes_to_effect": 18,
+        "resolver": "Rahul Mehta",
+        "notes": "live repartitioning triggered a consumer group rebalance storm and made lag worse for ~18 min"
+      },
+      {
+        "fix_type": "scale_consumer_replicas",
+        "outcome": "worked",
+        "minutes_to_effect": 12,
+        "resolver": "Rahul Mehta",
+        "notes": "scaled order-processing consumers from 3 to 8 replicas"
+      }
+    ],
+    "resolution": "Scaling consumer replicas from 3 to 8 drained the backlog within 12 minutes of the change.",
+    "resolver": "Rahul Mehta",
+    "postmortem": "Pre-scale consumer replicas ahead of known sale events instead of reacting after lag builds; avoid live partition count changes under high load.",
+    "pattern_tags": [
+      "kafka-lag-sale"
+    ],
+    "permanent_fix_open": false,
+    "total_minutes_to_resolve": 30,
+    "text": "Date: 2026-06-03T10:02:18Z | INC-006 | order-worker | SEV1\nSymptoms: During the Summer Splash Sale flash promotion, order-events consumer lag climbed past 48k messages; order confirmations delayed up to 20 minutes.\nRoot cause: Sale traffic pushed the produce rate to ~4x baseline; the order-processing consumer group (3 replicas) could not keep pace with partition throughput.\nFixes tried: 1) increase_topic_partition_count_live -> failed (Rahul Mehta, 18 min, live repartitioning triggered a consumer group rebalance storm and made lag worse for ~18 min); 2) scale_consumer_replicas -> worked (Rahul Mehta, 12 min, scaled order-processing consumers from 3 to 8 replicas).\nResolver: Rahul Mehta.\nTime to resolve: 30 min."
+  },
+  {
+    "incident_id": "INC-007",
+    "document_id": "incident-INC-007",
+    "service": "search-api",
+    "severity": "SEV3",
+    "timestamp": "2026-06-09T13:44:29Z",
+    "title": "OpenSearch shard allocation stuck after node restart",
+    "symptoms": "OpenSearch cluster status RED for catalog-v2; ~15% of search requests returning partial results after a data node restart during routine maintenance.",
+    "error_signature": "opensearch_shard_allocation_failed",
+    "log_snippet": "2026-06-09T13:44:29Z ERROR search-api [opensearch-cluster] cluster_status=RED unassigned_shards=6 index=catalog-v2 reason=ALLOCATION_FAILED max_retries_exhausted=true",
+    "root_cause": "Shard allocation for 6 primary shards failed to auto-reassign after the node restart because the allocation retry limit (5) had already been exhausted from a prior transient failure.",
+    "fix_attempts": [
+      {
+        "fix_type": "reroute_unassigned_shards",
+        "outcome": "worked",
+        "minutes_to_effect": 16,
+        "resolver": "Sofia Martinez",
+        "notes": "issued a manual shard reroute with retry_failed=true"
+      }
+    ],
+    "resolution": "Manual shard reroute returned the cluster to GREEN.",
+    "resolver": "Sofia Martinez",
+    "postmortem": "Add alerting on unassigned shard count so this is caught before it affects users.",
+    "pattern_tags": [],
+    "permanent_fix_open": false,
+    "total_minutes_to_resolve": 16,
+    "text": "Date: 2026-06-09T13:44:29Z | INC-007 | search-api | SEV3\nSymptoms: OpenSearch cluster status RED for catalog-v2; ~15% of search requests returning partial results after a data node restart during routine maintenance.\nRoot cause: Shard allocation for 6 primary shards failed to auto-reassign after the node restart because the allocation retry limit (5) had already been exhausted from a prior transient failure.\nFixes tried: 1) reroute_unassigned_shards -> worked (Sofia Martinez, 16 min, issued a manual shard reroute with retry_failed=true).\nResolver: Sofia Martinez.\nTime to resolve: 16 min."
+  },
+  {
+    "incident_id": "INC-008",
+    "document_id": "incident-INC-008",
+    "service": "order-worker",
+    "severity": "SEV2",
+    "timestamp": "2026-06-15T06:58:12Z",
+    "title": "Redis OOM recurs the following Monday",
+    "symptoms": "Second Monday-morning Redis OOM in a month; order-worker queue depth past 38k again, same signature as INC-003.",
+    "error_signature": "redis_oom",
+    "log_snippet": "2026-06-15T06:58:12Z ERROR order-worker [redis-client] OOM command not allowed when used memory > 'maxmemory'.\nredis_used_memory_pct=98.7% queue_depth=38760 maxmemory_policy=allkeys-lru",
+    "root_cause": "The allkeys-lru eviction policy set after INC-003 slowed the OOM but idempotency keys from the order-retry-queue still have no TTL, so memory pressure builds back up over the weekend.",
+    "fix_attempts": [
+      {
+        "fix_type": "manual_flush_stale_keys",
+        "outcome": "partial",
+        "minutes_to_effect": 10,
+        "resolver": "Ananya Iyer",
+        "notes": "same short-term relief as INC-003"
+      },
+      {
+        "fix_type": "add_ttl_to_job_result_keys",
+        "outcome": "worked",
+        "minutes_to_effect": 15,
+        "resolver": "Ananya Iyer",
+        "notes": "added a 24h TTL to job-result keys; order-retry-queue keys still untouched"
+      }
+    ],
+    "resolution": "Adding TTLs to job-result keys reduced memory pressure but did not fully resolve it -- order-retry-queue keys were missed.",
+    "resolver": "Ananya Iyer",
+    "postmortem": "Still recurring: root cause (unbounded order-retry-queue keys) not yet fixed. A third occurrence is expected if not addressed before the next Monday peak.",
+    "pattern_tags": [
+      "redis-oom-monday"
+    ],
+    "permanent_fix_open": false,
+    "total_minutes_to_resolve": 25,
+    "text": "Date: 2026-06-15T06:58:12Z | INC-008 | order-worker | SEV2\nSymptoms: Second Monday-morning Redis OOM in a month; order-worker queue depth past 38k again, same signature as INC-003.\nRoot cause: The allkeys-lru eviction policy set after INC-003 slowed the OOM but idempotency keys from the order-retry-queue still have no TTL, so memory pressure builds back up over the weekend.\nFixes tried: 1) manual_flush_stale_keys -> partial (Ananya Iyer, 10 min, same short-term relief as INC-003); 2) add_ttl_to_job_result_keys -> worked (Ananya Iyer, 15 min, added a 24h TTL to job-result keys; order-retry-queue keys still untouched).\nResolver: Ananya Iyer.\nTime to resolve: 25 min."
+  },
+  {
+    "incident_id": "INC-009",
+    "document_id": "incident-INC-009",
+    "service": "payments-api",
+    "severity": "SEV1",
+    "timestamp": "2026-06-19T15:10:47Z",
+    "title": "Postgres connection pool exhaustion recurs after v2.3.1 Friday deploy",
+    "symptoms": "Same signature as INC-002: p99 latency above 4.6s and checkout errors above 20% about 15 minutes after the v2.3.1 Friday deploy.",
+    "error_signature": "postgres_pool_exhaustion",
+    "log_snippet": "2026-06-19T15:10:47Z ERROR payments-api [pool-2] org.postgresql.util.PSQLException: FATAL: remaining connection slots are reserved for non-replication superuser connections\np99_latency=4650ms error_rate=21.8% deploy=v2.3.1 (15 min ago)",
+    "root_cause": "Same order-confirmation retry session leak as INC-002 (still unfixed in code), triggered again by Friday deploy traffic.",
+    "fix_attempts": [
+      {
+        "fix_type": "increase_postgres_pool_size",
+        "outcome": "worked",
+        "minutes_to_effect": 7,
+        "resolver": "Priya Nair",
+        "notes": "went straight to the pool resize this time -- team learned from INC-002 that rollback doesn't help"
+      }
+    ],
+    "resolution": "Pool size increase resolved the outage in 7 minutes; no rollback attempted.",
+    "resolver": "Priya Nair",
+    "postmortem": "Second occurrence of the same pattern. Escalating priority on the order-confirmation session-leak fix.",
+    "pattern_tags": [
+      "pool-exhaustion-friday-deploy"
+    ],
+    "permanent_fix_open": false,
+    "total_minutes_to_resolve": 7,
+    "text": "Date: 2026-06-19T15:10:47Z | INC-009 | payments-api | SEV1\nSymptoms: Same signature as INC-002: p99 latency above 4.6s and checkout errors above 20% about 15 minutes after the v2.3.1 Friday deploy.\nRoot cause: Same order-confirmation retry session leak as INC-002 (still unfixed in code), triggered again by Friday deploy traffic.\nFixes tried: 1) increase_postgres_pool_size -> worked (Priya Nair, 7 min, went straight to the pool resize this time -- team learned from INC-002 that rollback doesn't help).\nResolver: Priya Nair.\nTime to resolve: 7 min."
+  },
+  {
+    "incident_id": "INC-010",
+    "document_id": "incident-INC-010",
+    "service": "notification-service",
+    "severity": "SEV2",
+    "timestamp": "2026-06-23T09:33:05Z",
+    "title": "Push notifications failing from expired FCM service-account key",
+    "symptoms": "Push notifications silently failing for ~30% of Android users since overnight; no errors surfaced to users but delivery rate dropped.",
+    "error_signature": "fcm_auth_key_expired",
+    "log_snippet": "2026-06-23T09:33:05Z ERROR notification-service [push-sender] FCMAuthError: Request had invalid authentication credentials (401) provider=fcm\ndelivery_rate=68.4% affected_platform=android",
+    "root_cause": "The Firebase Cloud Messaging service-account key used by notification-service expired and was not auto-rotated.",
+    "fix_attempts": [
+      {
+        "fix_type": "refresh_fcm_service_account_key",
+        "outcome": "worked",
+        "minutes_to_effect": 19,
+        "resolver": "Arjun Verma",
+        "notes": "rotated the FCM service-account key from vault"
+      }
+    ],
+    "resolution": "Rotating the FCM service-account key restored delivery rate to baseline.",
+    "resolver": "Arjun Verma",
+    "postmortem": "Add expiry alerting for all third-party service-account credentials, not just TLS certs.",
+    "pattern_tags": [],
+    "permanent_fix_open": false,
+    "total_minutes_to_resolve": 19,
+    "text": "Date: 2026-06-23T09:33:05Z | INC-010 | notification-service | SEV2\nSymptoms: Push notifications silently failing for ~30% of Android users since overnight; no errors surfaced to users but delivery rate dropped.\nRoot cause: The Firebase Cloud Messaging service-account key used by notification-service expired and was not auto-rotated.\nFixes tried: 1) refresh_fcm_service_account_key -> worked (Arjun Verma, 19 min, rotated the FCM service-account key from vault).\nResolver: Arjun Verma.\nTime to resolve: 19 min."
+  },
+  {
+    "incident_id": "INC-011",
+    "document_id": "incident-INC-011",
+    "service": "auth-service",
+    "severity": "SEV3",
+    "timestamp": "2026-06-29T08:41:17Z",
+    "title": "Intermittent OAuth login failures from Google provider 500s",
+    "symptoms": "Google OAuth login failing intermittently for ~4% of attempts with upstream 500 errors.",
+    "error_signature": "oauth_provider_5xx",
+    "log_snippet": "2026-06-29T08:41:17Z ERROR auth-service [oauth-client] UpstreamError: provider=google status=500 endpoint=/token\nerror_rate=4.1% retries=0",
+    "root_cause": "Google's OAuth token endpoint had a transient elevated error rate (confirmed via provider status page); auth-service had no retry/circuit breaker around the call.",
+    "fix_attempts": [
+      {
+        "fix_type": "add_retry_and_circuit_breaker",
+        "outcome": "worked",
+        "minutes_to_effect": 28,
+        "resolver": "Emily Chen",
+        "notes": "added exponential backoff retry (3 attempts) and a circuit breaker around the token exchange call"
+      }
+    ],
+    "resolution": "Retry and circuit breaker absorbed the provider's transient errors until it recovered.",
+    "resolver": "Emily Chen",
+    "postmortem": "No external dependency call should ship without a retry/circuit breaker -- add to the service checklist.",
+    "pattern_tags": [],
+    "permanent_fix_open": false,
+    "total_minutes_to_resolve": 28,
+    "text": "Date: 2026-06-29T08:41:17Z | INC-011 | auth-service | SEV3\nSymptoms: Google OAuth login failing intermittently for ~4% of attempts with upstream 500 errors.\nRoot cause: Google's OAuth token endpoint had a transient elevated error rate (confirmed via provider status page); auth-service had no retry/circuit breaker around the call.\nFixes tried: 1) add_retry_and_circuit_breaker -> worked (Emily Chen, 28 min, added exponential backoff retry (3 attempts) and a circuit breaker around the token exchange call).\nResolver: Emily Chen.\nTime to resolve: 28 min."
+  },
+  {
+    "incident_id": "INC-012",
+    "document_id": "incident-INC-012",
+    "service": "auth-service",
+    "severity": "SEV1",
+    "timestamp": "2026-07-01T03:27:54Z",
+    "title": "Expired TLS certificate on auth.shipfast.example",
+    "symptoms": "100% of login and token-refresh requests failing with SSL handshake errors starting at 03:27 UTC.",
+    "error_signature": "tls_cert_expired",
+    "log_snippet": "2026-07-01T03:27:54Z ERROR auth-service [tls-handshake] javax.net.ssl.SSLHandshakeException: PKIX path validation failed: certificate expired on 2026-07-01T03:00:00Z\nendpoint=auth.shipfast.example error_rate=100.0%",
+    "root_cause": "The TLS certificate for auth.shipfast.example expired; cert-manager's renewal job had been silently failing for 3 weeks due to an expired DNS-01 challenge API token.",
+    "fix_attempts": [
+      {
+        "fix_type": "restart_auth_pods",
+        "outcome": "failed",
+        "minutes_to_effect": 9,
+        "resolver": "Emily Chen",
+        "notes": "restarting pods does not fetch a new certificate; handshake errors continued"
+      },
+      {
+        "fix_type": "manually_renew_and_deploy_certificate",
+        "outcome": "worked",
+        "minutes_to_effect": 21,
+        "resolver": "Emily Chen",
+        "notes": "renewed the cert via cert-manager after rotating the DNS-01 API token, force-deployed to all pods"
+      }
+    ],
+    "resolution": "Manual certificate renewal and redeploy restored TLS; the DNS-01 API token was rotated and expiry alerting added.",
+    "resolver": "Emily Chen",
+    "postmortem": "Add 30-day cert-expiry alerting and monitor cert-manager renewal job health, not just cert expiry dates.",
+    "pattern_tags": [
+      "expired-tls-cert"
+    ],
+    "permanent_fix_open": false,
+    "total_minutes_to_resolve": 30,
+    "text": "Date: 2026-07-01T03:27:54Z | INC-012 | auth-service | SEV1\nSymptoms: 100% of login and token-refresh requests failing with SSL handshake errors starting at 03:27 UTC.\nRoot cause: The TLS certificate for auth.shipfast.example expired; cert-manager's renewal job had been silently failing for 3 weeks due to an expired DNS-01 challenge API token.\nFixes tried: 1) restart_auth_pods -> failed (Emily Chen, 9 min, restarting pods does not fetch a new certificate; handshake errors continued); 2) manually_renew_and_deploy_certificate -> worked (Emily Chen, 21 min, renewed the cert via cert-manager after rotating the DNS-01 API token, force-deployed to all pods).\nResolver: Emily Chen.\nTime to resolve: 30 min."
+  },
+  {
+    "incident_id": "INC-013",
+    "document_id": "incident-INC-013",
+    "service": "payments-api",
+    "severity": "SEV2",
+    "timestamp": "2026-07-06T12:15:38Z",
+    "title": "Payment gateway webhook rejected after signing-secret rotation",
+    "symptoms": "Payment gateway webhook events (payment.succeeded, payment.failed) all rejected with signature verification errors since ~12:00 UTC; order status stuck in 'pending'.",
+    "error_signature": "webhook_signature_mismatch",
+    "log_snippet": "2026-07-06T12:15:38Z ERROR payments-api [webhook-handler] SignatureVerificationError: webhook signature mismatch provider=gatewaypay endpoint=/webhooks/payments\nrejected_events=312 error_rate=100.0%",
+    "root_cause": "The upstream payment gateway rotated its webhook signing secret as part of a scheduled security rotation; payments-api was still validating against the old secret cached in config.",
+    "fix_attempts": [
+      {
+        "fix_type": "update_webhook_secret_from_vault",
+        "outcome": "worked",
+        "minutes_to_effect": 11,
+        "resolver": "Priya Nair",
+        "notes": "pulled the rotated secret from vault and redeployed config"
+      }
+    ],
+    "resolution": "Updating the webhook secret resolved verification; queued webhook events were replayed.",
+    "resolver": "Priya Nair",
+    "postmortem": "Subscribe to the payment gateway's secret-rotation notifications instead of discovering rotation via failures.",
+    "pattern_tags": [],
+    "permanent_fix_open": false,
+    "total_minutes_to_resolve": 11,
+    "text": "Date: 2026-07-06T12:15:38Z | INC-013 | payments-api | SEV2\nSymptoms: Payment gateway webhook events (payment.succeeded, payment.failed) all rejected with signature verification errors since ~12:00 UTC; order status stuck in 'pending'.\nRoot cause: The upstream payment gateway rotated its webhook signing secret as part of a scheduled security rotation; payments-api was still validating against the old secret cached in config.\nFixes tried: 1) update_webhook_secret_from_vault -> worked (Priya Nair, 11 min, pulled the rotated secret from vault and redeployed config).\nResolver: Priya Nair.\nTime to resolve: 11 min."
+  },
+  {
+    "incident_id": "INC-014",
+    "document_id": "incident-INC-014",
+    "service": "search-api",
+    "severity": "SEV2",
+    "timestamp": "2026-07-08T10:52:09Z",
+    "title": "Search timeouts after fuzzy-search-v2 flag hit 100% rollout",
+    "symptoms": "search-api p99 latency jumped to 31.2s and error rate to 41% immediately after the enable_fuzzy_search_v2 flag hit 100% rollout.",
+    "error_signature": "bad_feature_flag_regression",
+    "log_snippet": "2026-07-08T10:52:09Z ERROR search-api [query-executor] feature_flag=enable_fuzzy_search_v2 timeout after 30000ms query_id=91423\np99_latency=31200ms error_rate=41.2% flag_rollout=100%",
+    "root_cause": "The fuzzy_search_v2 flag enables expensive Levenshtein-distance matching across the full catalog index for every query; at 100% rollout this exceeded the query-executor's 30s timeout under normal traffic.",
+    "fix_attempts": [
+      {
+        "fix_type": "disable_feature_flag",
+        "outcome": "worked",
+        "minutes_to_effect": 4,
+        "resolver": "Sofia Martinez",
+        "notes": "flipped enable_fuzzy_search_v2 off via config; latency recovered immediately"
+      }
+    ],
+    "resolution": "Disabling the flag immediately restored normal latency; it stays off pending an indexed fuzzy-match implementation.",
+    "resolver": "Sofia Martinez",
+    "postmortem": "Feature flags with unbounded compute cost need a rollout percentage cap and load testing before 100% rollout.",
+    "pattern_tags": [
+      "bad-config-flag"
+    ],
+    "permanent_fix_open": false,
+    "total_minutes_to_resolve": 4,
+    "text": "Date: 2026-07-08T10:52:09Z | INC-014 | search-api | SEV2\nSymptoms: search-api p99 latency jumped to 31.2s and error rate to 41% immediately after the enable_fuzzy_search_v2 flag hit 100% rollout.\nRoot cause: The fuzzy_search_v2 flag enables expensive Levenshtein-distance matching across the full catalog index for every query; at 100% rollout this exceeded the query-executor's 30s timeout under normal traffic.\nFixes tried: 1) disable_feature_flag -> worked (Sofia Martinez, 4 min, flipped enable_fuzzy_search_v2 off via config; latency recovered immediately).\nResolver: Sofia Martinez.\nTime to resolve: 4 min."
+  },
+  {
+    "incident_id": "INC-015",
+    "document_id": "incident-INC-015",
+    "service": "order-worker",
+    "severity": "SEV2",
+    "timestamp": "2026-07-13T05:19:44Z",
+    "title": "Redis OOM recurs a third Monday -- root cause finally fixed",
+    "symptoms": "Third Monday-morning Redis OOM; same signature as INC-003 and INC-008.",
+    "error_signature": "redis_oom",
+    "log_snippet": "2026-07-13T05:19:44Z ERROR order-worker [redis-client] OOM command not allowed when used memory > 'maxmemory'.\nredis_used_memory_pct=99.4% queue_depth=36510 maxmemory_policy=allkeys-lru",
+    "root_cause": "Root-caused at last: the order-retry-queue's dead-letter keys were excluded from the TTL fix added in INC-008 due to a key-prefix mismatch (retry: vs order-retry:); those keys never expired.",
+    "fix_attempts": [
+      {
+        "fix_type": "fix_ttl_key_prefix_mismatch",
+        "outcome": "worked",
+        "minutes_to_effect": 18,
+        "resolver": "Ananya Iyer",
+        "notes": "corrected the TTL job's key-prefix filter to match order-retry: keys; backfilled TTLs on 2.1M existing keys"
+      }
+    ],
+    "resolution": "Root cause fixed; order-retry-queue keys now expire correctly. No further Monday Redis OOM incidents since.",
+    "resolver": "Ananya Iyer",
+    "postmortem": "Pattern closed. Add a Redis key-growth dashboard so future TTL gaps are caught proactively instead of by outage.",
+    "pattern_tags": [
+      "redis-oom-monday"
+    ],
+    "permanent_fix_open": false,
+    "total_minutes_to_resolve": 18,
+    "text": "Date: 2026-07-13T05:19:44Z | INC-015 | order-worker | SEV2\nSymptoms: Third Monday-morning Redis OOM; same signature as INC-003 and INC-008.\nRoot cause: Root-caused at last: the order-retry-queue's dead-letter keys were excluded from the TTL fix added in INC-008 due to a key-prefix mismatch (retry: vs order-retry:); those keys never expired.\nFixes tried: 1) fix_ttl_key_prefix_mismatch -> worked (Ananya Iyer, 18 min, corrected the TTL job's key-prefix filter to match order-retry: keys; backfilled TTLs on 2.1M existing keys).\nResolver: Ananya Iyer.\nTime to resolve: 18 min."
+  },
+  {
+    "incident_id": "INC-016",
+    "document_id": "incident-INC-016",
+    "service": "order-worker",
+    "severity": "SEV1",
+    "timestamp": "2026-07-21T17:03:26Z",
+    "title": "Pods repeatedly OOMKilled after image-resize library upgrade",
+    "symptoms": "order-worker pods repeatedly OOMKilled every 20-30 minutes since a deploy 2 hours ago; job processing throughput down 60%.",
+    "error_signature": "k8s_oom_killed_memory_leak",
+    "log_snippet": "2026-07-21T17:03:26Z WARN kubernetes [kubelet] Pod order-worker-7c9d8f OOMKilled reason=Evicted container_memory_working_set_bytes=2147483648 limit_bytes=2147483648\nrestart_count=14 image_resize_lib=v4.2.0",
+    "root_cause": "A newly upgraded image-resize library (v4.2.0) leaks native memory buffers on each thumbnail generation call, growing pod RSS until the kubelet OOM-kills the container.",
+    "fix_attempts": [
+      {
+        "fix_type": "rollback_image_resize_library_version",
+        "outcome": "worked",
+        "minutes_to_effect": 20,
+        "resolver": "David Kim",
+        "notes": "pinned image-resize back to v4.1.3; memory growth stopped"
+      }
+    ],
+    "resolution": "Rolling back the leaking dependency (not the whole service) resolved the OOM-kills.",
+    "resolver": "David Kim",
+    "postmortem": "Pin third-party native-dependency upgrades behind a canary with memory-growth monitoring before full rollout.",
+    "pattern_tags": [],
+    "permanent_fix_open": false,
+    "total_minutes_to_resolve": 20,
+    "text": "Date: 2026-07-21T17:03:26Z | INC-016 | order-worker | SEV1\nSymptoms: order-worker pods repeatedly OOMKilled every 20-30 minutes since a deploy 2 hours ago; job processing throughput down 60%.\nRoot cause: A newly upgraded image-resize library (v4.2.0) leaks native memory buffers on each thumbnail generation call, growing pod RSS until the kubelet OOM-kills the container.\nFixes tried: 1) rollback_image_resize_library_version -> worked (David Kim, 20 min, pinned image-resize back to v4.1.3; memory growth stopped).\nResolver: David Kim.\nTime to resolve: 20 min."
+  },
+  {
+    "incident_id": "INC-017",
+    "document_id": "incident-INC-017",
+    "service": "payments-api",
+    "severity": "SEV1",
+    "timestamp": "2026-07-24T14:48:51Z",
+    "title": "Postgres connection pool exhaustion recurs after v2.4.0 Friday deploy",
+    "symptoms": "Same signature as INC-002/INC-009: p99 latency above 4.7s and checkout errors above 22% about 10 minutes after the v2.4.0 Friday deploy.",
+    "error_signature": "postgres_pool_exhaustion",
+    "log_snippet": "2026-07-24T14:48:51Z ERROR payments-api [pool-2] org.postgresql.util.PSQLException: FATAL: remaining connection slots are reserved for non-replication superuser connections\np99_latency=4710ms error_rate=22.6% deploy=v2.4.0 (10 min ago)",
+    "root_cause": "Same unresolved order-confirmation session leak, now triggered a third time by the v2.4.0 Friday deploy.",
+    "fix_attempts": [
+      {
+        "fix_type": "rollback_to_previous_deploy",
+        "outcome": "failed",
+        "minutes_to_effect": 19,
+        "resolver": "David Kim",
+        "notes": "on-call engineer unfamiliar with INC-002/INC-009 history attempted a rollback to v2.3.1; pool exhaustion persisted as before"
+      },
+      {
+        "fix_type": "increase_postgres_pool_size",
+        "outcome": "worked",
+        "minutes_to_effect": 8,
+        "resolver": "Priya Nair",
+        "notes": "paged in; resized pool from 20 to 80 given repeated recurrence"
+      }
+    ],
+    "resolution": "Pool resize resolved the outage; rollback failed for the second time on this pattern.",
+    "resolver": "Priya Nair",
+    "postmortem": "Third occurrence. The order-confirmation session-leak fix from INC-002's postmortem is still not implemented; escalate to a P1 tech-debt item.",
+    "pattern_tags": [
+      "pool-exhaustion-friday-deploy"
+    ],
+    "permanent_fix_open": false,
+    "total_minutes_to_resolve": 27,
+    "text": "Date: 2026-07-24T14:48:51Z | INC-017 | payments-api | SEV1\nSymptoms: Same signature as INC-002/INC-009: p99 latency above 4.7s and checkout errors above 22% about 10 minutes after the v2.4.0 Friday deploy.\nRoot cause: Same unresolved order-confirmation session leak, now triggered a third time by the v2.4.0 Friday deploy.\nFixes tried: 1) rollback_to_previous_deploy -> failed (David Kim, 19 min, on-call engineer unfamiliar with INC-002/INC-009 history attempted a rollback to v2.3.1; pool exhaustion persisted as before); 2) increase_postgres_pool_size -> worked (Priya Nair, 8 min, paged in; resized pool from 20 to 80 given repeated recurrence).\nResolver: Priya Nair.\nTime to resolve: 27 min."
+  },
+  {
+    "incident_id": "INC-018",
+    "document_id": "incident-INC-018",
+    "service": "search-api",
+    "severity": "SEV3",
+    "timestamp": "2026-07-28T11:36:15Z",
+    "title": "OpenSearch data nodes hit disk watermark, cluster entered read-only mode",
+    "symptoms": "OpenSearch data nodes at 89% disk usage, cluster entering read-only mode on the oldest index; historical search degraded.",
+    "error_signature": "opensearch_disk_watermark",
+    "log_snippet": "2026-07-28T11:36:15Z WARN search-api [opensearch-cluster] disk_watermark_exceeded node=data-3 disk_used_pct=89.2% index=catalog-v2-logs-2026.02\nread_only_allow_delete=true",
+    "root_cause": "No index lifecycle management policy existed for catalog-v2 request logs; six months of unbounded log indices consumed most of the disk.",
+    "fix_attempts": [
+      {
+        "fix_type": "add_ilm_policy_and_delete_old_indices",
+        "outcome": "worked",
+        "minutes_to_effect": 24,
+        "resolver": "Sofia Martinez",
+        "notes": "added a 60-day ILM retention policy and deleted indices older than 60 days"
+      }
+    ],
+    "resolution": "Deleting stale log indices and adding an ILM policy restored disk headroom and cleared read-only mode.",
+    "resolver": "Sofia Martinez",
+    "postmortem": "Add disk-usage alerting at a 75% watermark instead of waiting for the 85% read-only threshold.",
+    "pattern_tags": [],
+    "permanent_fix_open": false,
+    "total_minutes_to_resolve": 24,
+    "text": "Date: 2026-07-28T11:36:15Z | INC-018 | search-api | SEV3\nSymptoms: OpenSearch data nodes at 89% disk usage, cluster entering read-only mode on the oldest index; historical search degraded.\nRoot cause: No index lifecycle management policy existed for catalog-v2 request logs; six months of unbounded log indices consumed most of the disk.\nFixes tried: 1) add_ilm_policy_and_delete_old_indices -> worked (Sofia Martinez, 24 min, added a 60-day ILM retention policy and deleted indices older than 60 days).\nResolver: Sofia Martinez.\nTime to resolve: 24 min."
+  },
+  {
+    "incident_id": "INC-019",
+    "document_id": "incident-INC-019",
+    "service": "auth-service",
+    "severity": "SEV1",
+    "timestamp": "2026-08-11T04:22:37Z",
+    "title": "Session-store Redis OOM from uncapped 'remember me' sessions",
+    "symptoms": "Users logged out en masse; auth-service session lookups failing with Redis OOM errors starting 04:22 UTC (not a Monday).",
+    "error_signature": "redis_oom_session_store",
+    "log_snippet": "2026-08-11T04:22:37Z ERROR auth-service [session-store] OOM command not allowed when used memory > 'maxmemory'.\nredis_used_memory_pct=100.0% session_keys_total=4218031 oldest_session_age_days=412",
+    "root_cause": "'Remember me' sessions were issued with no TTL cap (some over a year old); accumulated session keys filled the auth-service session Redis instance to its 1GB maxmemory limit.",
+    "fix_attempts": [
+      {
+        "fix_type": "set_explicit_session_ttl_cap",
+        "outcome": "partial",
+        "minutes_to_effect": 12,
+        "resolver": "Ananya Iyer",
+        "notes": "capped new sessions at 30 days; did not remove the existing 4.2M uncapped keys"
+      },
+      {
+        "fix_type": "flush_expired_and_stale_sessions",
+        "outcome": "worked",
+        "minutes_to_effect": 16,
+        "resolver": "Ananya Iyer",
+        "notes": "bulk-deleted sessions older than 90 days to reclaim memory immediately"
+      }
+    ],
+    "resolution": "Flushing stale sessions freed enough memory; new sessions are now capped at 30 days going forward.",
+    "resolver": "Ananya Iyer",
+    "postmortem": "Similar signature to the order-worker Redis OOM pattern but a distinct root cause (uncapped session TTL vs. unbounded queue keys) and a different service -- do not conflate the two when ranking fixes.",
+    "pattern_tags": [],
+    "permanent_fix_open": false,
+    "total_minutes_to_resolve": 28,
+    "text": "Date: 2026-08-11T04:22:37Z | INC-019 | auth-service | SEV1\nSymptoms: Users logged out en masse; auth-service session lookups failing with Redis OOM errors starting 04:22 UTC (not a Monday).\nRoot cause: 'Remember me' sessions were issued with no TTL cap (some over a year old); accumulated session keys filled the auth-service session Redis instance to its 1GB maxmemory limit.\nFixes tried: 1) set_explicit_session_ttl_cap -> partial (Ananya Iyer, 12 min, capped new sessions at 30 days; did not remove the existing 4.2M uncapped keys); 2) flush_expired_and_stale_sessions -> worked (Ananya Iyer, 16 min, bulk-deleted sessions older than 90 days to reclaim memory immediately).\nResolver: Ananya Iyer.\nTime to resolve: 28 min."
+  },
+  {
+    "incident_id": "INC-020",
+    "document_id": "incident-INC-020",
+    "service": "order-worker",
+    "severity": "SEV1",
+    "timestamp": "2026-08-15T21:07:52Z",
+    "title": "Kafka consumer lag during Independence Day Mega Sale",
+    "symptoms": "During the Independence Day Mega Sale, order-events consumer lag began climbing again within minutes of the flash sale start.",
+    "error_signature": "kafka_consumer_lag",
+    "log_snippet": "2026-08-15T21:07:52Z WARN order-worker [kafka-consumer-group=order-processing] consumer lag detected partition=4 lag=15870 messages\nthroughput_msgs_sec=980 target_msgs_sec=1550 topic=order-events",
+    "root_cause": "Sale traffic again exceeded consumer throughput capacity, same as INC-006, but this time the team pre-scaled ahead of the event per the INC-006 postmortem action item -- lag still spiked briefly due to a delayed autoscaler trigger.",
+    "fix_attempts": [
+      {
+        "fix_type": "scale_consumer_replicas",
+        "outcome": "worked",
+        "minutes_to_effect": 6,
+        "resolver": "Rahul Mehta",
+        "notes": "manually scaled consumers from 6 to 10 immediately, skipping the slow autoscaler; lag drained in a third of the time it took during INC-006"
+      }
+    ],
+    "resolution": "Manual pre-scaling and a fast consumer scale-up drained the backlog in a third of the time it took during INC-006.",
+    "resolver": "Rahul Mehta",
+    "postmortem": "Autoscaler trigger threshold is still too conservative for flash-sale traffic; add a scheduled pre-scale for known sale windows.",
+    "pattern_tags": [
+      "kafka-lag-sale"
+    ],
+    "permanent_fix_open": false,
+    "total_minutes_to_resolve": 6,
+    "text": "Date: 2026-08-15T21:07:52Z | INC-020 | order-worker | SEV1\nSymptoms: During the Independence Day Mega Sale, order-events consumer lag began climbing again within minutes of the flash sale start.\nRoot cause: Sale traffic again exceeded consumer throughput capacity, same as INC-006, but this time the team pre-scaled ahead of the event per the INC-006 postmortem action item -- lag still spiked briefly due to a delayed autoscaler trigger.\nFixes tried: 1) scale_consumer_replicas -> worked (Rahul Mehta, 6 min, manually scaled consumers from 6 to 10 immediately, skipping the slow autoscaler; lag drained in a third of the time it took during INC-006).\nResolver: Rahul Mehta.\nTime to resolve: 6 min."
+  },
+  {
+    "incident_id": "INC-021",
+    "document_id": "incident-INC-021",
+    "service": "payments-api",
+    "severity": "SEV1",
+    "timestamp": "2026-08-28T15:55:08Z",
+    "title": "Postgres connection pool exhaustion recurs a fourth time after v2.5.0 Friday deploy",
+    "symptoms": "Same signature as INC-002/INC-009/INC-017: p99 latency above 4.9s and checkout errors above 24% about 8 minutes after the v2.5.0 Friday deploy.",
+    "error_signature": "postgres_pool_exhaustion",
+    "log_snippet": "2026-08-28T15:55:08Z ERROR payments-api [pool-2] org.postgresql.util.PSQLException: FATAL: remaining connection slots are reserved for non-replication superuser connections\np99_latency=4890ms error_rate=24.1% deploy=v2.5.0 (8 min ago)",
+    "root_cause": "Fourth occurrence of the same unfixed order-confirmation session leak, triggered by the v2.5.0 Friday deploy.",
+    "fix_attempts": [
+      {
+        "fix_type": "increase_postgres_pool_size",
+        "outcome": "worked",
+        "minutes_to_effect": 6,
+        "resolver": "Priya Nair",
+        "notes": "resized pool from 20 to 100; recognized the pattern immediately from the on-call runbook"
+      }
+    ],
+    "resolution": "Pool resize resolved the outage in 6 minutes -- the fastest recovery yet for this pattern.",
+    "resolver": "Priya Nair",
+    "postmortem": "Fourth recurrence of the same root cause first identified in INC-002 (unreleased DB sessions on retry timeout in order-confirmation). The permanent code fix has been proposed three times and is STILL NOT IMPLEMENTED. Escalating to engineering leadership as a recurring, unaddressed risk.",
+    "pattern_tags": [
+      "pool-exhaustion-friday-deploy"
+    ],
+    "permanent_fix_open": true,
+    "total_minutes_to_resolve": 6,
+    "text": "Date: 2026-08-28T15:55:08Z | INC-021 | payments-api | SEV1\nSymptoms: Same signature as INC-002/INC-009/INC-017: p99 latency above 4.9s and checkout errors above 24% about 8 minutes after the v2.5.0 Friday deploy.\nRoot cause: Fourth occurrence of the same unfixed order-confirmation session leak, triggered by the v2.5.0 Friday deploy.\nFixes tried: 1) increase_postgres_pool_size -> worked (Priya Nair, 6 min, resized pool from 20 to 100; recognized the pattern immediately from the on-call runbook).\nResolver: Priya Nair.\nTime to resolve: 6 min."
+  },
+  {
+    "incident_id": "INC-022",
+    "document_id": "incident-INC-022",
+    "service": "notification-service",
+    "severity": "SEV2",
+    "timestamp": "2026-09-10T08:12:40Z",
+    "title": "Broken emoji rendering in push notifications after templating library upgrade",
+    "symptoms": "Shipping-update push notifications rendering broken characters (mojibake) instead of emoji on iOS since a templating library upgrade yesterday.",
+    "error_signature": "notification_template_encoding_bug",
+    "log_snippet": "2026-09-10T08:12:40Z ERROR notification-service [template-renderer] EncodingMismatchWarning: output_encoding=platform-default expected=utf-8 template=shipping_update_v2\naffected_notifications=8420 platform=ios",
+    "root_cause": "The notification-templates library v3.0 upgrade changed its default output encoding from UTF-8 to the platform default, corrupting emoji and non-ASCII characters in rendered templates.",
+    "fix_attempts": [
+      {
+        "fix_type": "pin_previous_library_version",
+        "outcome": "worked",
+        "minutes_to_effect": 9,
+        "resolver": "Arjun Verma",
+        "notes": "pinned notification-templates back to v2.9.4 pending an encoding-config fix for v3.0"
+      }
+    ],
+    "resolution": "Pinning the previous library version restored correct emoji rendering immediately.",
+    "resolver": "Arjun Verma",
+    "postmortem": "Add rendered-output snapshot tests covering emoji and non-ASCII characters to catch encoding regressions before rollout.",
+    "pattern_tags": [],
+    "permanent_fix_open": false,
+    "total_minutes_to_resolve": 9,
+    "text": "Date: 2026-09-10T08:12:40Z | INC-022 | notification-service | SEV2\nSymptoms: Shipping-update push notifications rendering broken characters (mojibake) instead of emoji on iOS since a templating library upgrade yesterday.\nRoot cause: The notification-templates library v3.0 upgrade changed its default output encoding from UTF-8 to the platform default, corrupting emoji and non-ASCII characters in rendered templates.\nFixes tried: 1) pin_previous_library_version -> worked (Arjun Verma, 9 min, pinned notification-templates back to v2.9.4 pending an encoding-config fix for v3.0).\nResolver: Arjun Verma.\nTime to resolve: 9 min."
+  }
+]

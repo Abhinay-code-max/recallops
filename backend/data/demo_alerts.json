@@ -1,0 +1,101 @@
+[
+  {
+    "alert_id": "DEMO-1",
+    "target_capability": "recall",
+    "service": "payments-api",
+    "severity": "SEV1",
+    "title": "Checkout errors spiking after Friday deploy",
+    "submitted_at": "2026-09-11T15:02:00Z",
+    "symptoms": "Checkout requests failing with database connection errors; p99 latency 4.9s, error rate 25%, starting about 10 minutes after the v2.6.0 Friday deploy.",
+    "error_message": "org.postgresql.util.PSQLException: FATAL: remaining connection slots are reserved for non-replication superuser connections",
+    "log_snippet": "2026-09-11T15:02:00Z ERROR payments-api [pool-2] org.postgresql.util.PSQLException: FATAL: remaining connection slots are reserved for non-replication superuser connections\np99_latency=4910ms error_rate=25.0% deploy=v2.6.0 (10 min ago)",
+    "error_signature": "postgres_pool_exhaustion",
+    "expected_incident_ids": [
+      "INC-002",
+      "INC-009",
+      "INC-017",
+      "INC-021"
+    ],
+    "notes": "Recall should surface all 4 prior postgres_pool_exhaustion incidents on payments-api with dates and IDs -- the canonical 'incident 5 cites the past fix' demo moment."
+  },
+  {
+    "alert_id": "DEMO-2",
+    "target_capability": "failure_warning",
+    "service": "payments-api",
+    "severity": "SEV1",
+    "title": "Checkout errors again after the next Friday deploy",
+    "submitted_at": "2026-09-18T14:47:00Z",
+    "symptoms": "Same connection-pool-exhaustion signature as the prior four incidents; on-call is about to try rolling back the deploy.",
+    "error_message": "org.postgresql.util.PSQLException: FATAL: remaining connection slots are reserved for non-replication superuser connections",
+    "log_snippet": "2026-09-18T14:47:00Z ERROR payments-api [pool-2] org.postgresql.util.PSQLException: FATAL: remaining connection slots are reserved for non-replication superuser connections\np99_latency=4780ms error_rate=23.9% deploy=v2.6.1 (7 min ago)",
+    "error_signature": "postgres_pool_exhaustion",
+    "expected_incident_ids": [
+      "INC-002",
+      "INC-009",
+      "INC-017",
+      "INC-021"
+    ],
+    "expected_failed_fix_incident_ids": [
+      "INC-002",
+      "INC-017"
+    ],
+    "expected_worked_fix_type": "increase_postgres_pool_size",
+    "notes": "Recall's fix_attempts show rollback_to_previous_deploy failed on INC-002 and INC-017 (2 of 2 attempts) and increase_postgres_pool_size worked 4 of 4 times -- the agent should explicitly warn against rollback before it's tried."
+  },
+  {
+    "alert_id": "DEMO-3",
+    "target_capability": "reflect_pattern",
+    "service": "order-worker",
+    "severity": "SEV2",
+    "title": "Redis OOM on order-worker, Monday morning",
+    "submitted_at": "2026-09-14T07:10:00Z",
+    "symptoms": "order-worker queue depth climbing and Redis OOM errors, Monday morning, matching the historical pattern.",
+    "error_message": "OOM command not allowed when used memory > 'maxmemory'.",
+    "log_snippet": "2026-09-14T07:10:00Z ERROR order-worker [redis-client] OOM command not allowed when used memory > 'maxmemory'.\nredis_used_memory_pct=99.8% queue_depth=39210 maxmemory_policy=allkeys-lru",
+    "error_signature": "redis_oom",
+    "expected_incident_ids": [
+      "INC-003",
+      "INC-008",
+      "INC-015"
+    ],
+    "notes": "reflect should surface 'order-worker Redis OOM recurred on 3 consecutive Mondays (May-July) and was root-caused/fixed in INC-015 (TTL key-prefix mismatch)' -- a reappearance after that fix is a notable, non-obvious insight, not just a repeat match."
+  },
+  {
+    "alert_id": "DEMO-4",
+    "target_capability": "team_routing",
+    "service": "order-worker",
+    "severity": "SEV1",
+    "title": "Kafka consumer lag during Diwali Dhamaka Sale",
+    "submitted_at": "2026-09-16T11:30:00Z",
+    "symptoms": "order-events consumer lag climbing fast within minutes of the Diwali Dhamaka Sale flash promotion starting.",
+    "error_message": "consumer lag detected on order-processing consumer group",
+    "log_snippet": "2026-09-16T11:30:00Z WARN order-worker [kafka-consumer-group=order-processing] consumer lag detected partition=2 lag=22040 messages\nthroughput_msgs_sec=610 target_msgs_sec=1550 topic=order-events",
+    "error_signature": "kafka_consumer_lag",
+    "expected_incident_ids": [
+      "INC-006",
+      "INC-020"
+    ],
+    "expected_resolver": "Rahul Mehta",
+    "notes": "Rahul Mehta resolved both prior Kafka-lag-during-sale incidents; the briefing should suggest looping him in."
+  },
+  {
+    "alert_id": "DEMO-5",
+    "target_capability": "recurring_detector",
+    "service": "payments-api",
+    "severity": "SEV1",
+    "title": "Checkout errors a fifth time after a Friday deploy",
+    "submitted_at": "2026-09-25T15:20:00Z",
+    "symptoms": "Same connection-pool-exhaustion signature for the fifth time following a Friday deploy.",
+    "error_message": "org.postgresql.util.PSQLException: FATAL: remaining connection slots are reserved for non-replication superuser connections",
+    "log_snippet": "2026-09-25T15:20:00Z ERROR payments-api [pool-2] org.postgresql.util.PSQLException: FATAL: remaining connection slots are reserved for non-replication superuser connections\np99_latency=4950ms error_rate=24.8% deploy=v2.6.2 (8 min ago)",
+    "error_signature": "postgres_pool_exhaustion",
+    "expected_incident_ids": [
+      "INC-002",
+      "INC-009",
+      "INC-017",
+      "INC-021"
+    ],
+    "expected_open_permanent_fix_incident_id": "INC-021",
+    "notes": "This is the 5th occurrence of the pattern; INC-021's postmortem flags the order-confirmation session-leak fix as proposed three times and still not implemented -- the agent should flag this as a recurring incident with an open permanent fix, not just rank fixes again."
+  }
+]

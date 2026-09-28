@@ -1,0 +1,72 @@
+[
+  {
+    "name": "Priya Nair",
+    "role": "Senior Backend Engineer",
+    "specialties": [
+      "payments-api",
+      "postgres",
+      "redis",
+      "order-worker"
+    ],
+    "preference": "Prefers a config change, feature-flag toggle, or resource resize (e.g. connection pool size) over a full service rollback -- repeated rollbacks have failed to fix connection-pool-related incidents on payments-api."
+  },
+  {
+    "name": "Rahul Mehta",
+    "role": "Platform Engineer",
+    "specialties": [
+      "order-worker",
+      "kafka",
+      "kubernetes"
+    ],
+    "preference": "Prefers scaling out consumer replicas over changing Kafka partition counts live -- live repartitioning has triggered rebalance storms before."
+  },
+  {
+    "name": "Ananya Iyer",
+    "role": "Site Reliability Engineer",
+    "specialties": [
+      "redis",
+      "auth-service",
+      "caching"
+    ],
+    "preference": "Prefers setting explicit TTLs and eviction policies over manually flushing caches."
+  },
+  {
+    "name": "David Kim",
+    "role": "Infra / SRE Lead",
+    "specialties": [
+      "kubernetes",
+      "order-worker",
+      "infra",
+      "autoscaling"
+    ],
+    "preference": "Prefers rolling back a specific bad dependency or image version over a broad service rollback."
+  },
+  {
+    "name": "Sofia Martinez",
+    "role": "Search Platform Engineer",
+    "specialties": [
+      "search-api",
+      "opensearch"
+    ],
+    "preference": "Prefers disabling the responsible feature flag before reaching for an infra-level fix."
+  },
+  {
+    "name": "Arjun Verma",
+    "role": "Backend Engineer",
+    "specialties": [
+      "notification-service",
+      "third-party integrations"
+    ],
+    "preference": "Prefers failing over to a backup provider over waiting out a rate limit or outage."
+  },
+  {
+    "name": "Emily Chen",
+    "role": "Security / Auth Engineer",
+    "specialties": [
+      "auth-service",
+      "tls/certs",
+      "oauth"
+    ],
+    "preference": "Prefers fixing the root cause (cert renewal, config) over restarting pods as a first response."
+  }
+]
