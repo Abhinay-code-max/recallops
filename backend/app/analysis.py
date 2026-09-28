@@ -93,6 +93,9 @@ class AlertAnalysis:
     degraded_reason: str | None = None
 
 
+EVIDENCE_FLOOR_FRACTION = 0.25  # keep hit only if raw >= max(NO_MATCH_THRESHOLD, 0.25 * best)
+
+
 async def analyze_alert(alert_dict: dict[str, Any]) -> AlertAnalysis:
     ledger_data = ledger.read_ledger()
     query = incidents.alert_query(alert_dict)
@@ -109,27 +112,32 @@ async def analyze_alert(alert_dict: dict[str, Any]) -> AlertAnalysis:
     else:
         memory_state = "matched"
 
-    evidence = build_evidence(hits, alert_dict.get("submitted_at")) if memory_state == "matched" else []
+    # Dynamic floor: keep only hits whose raw score is at least 25% of the best
+    # (but never below the absolute NO_MATCH_THRESHOLD floor). This trims long-tail
+    # hits that are vastly weaker than the top match and would dilute evidence quality.
+    relevance_floor = max(NO_MATCH_THRESHOLD, EVIDENCE_FLOOR_FRACTION * best_relevance)
+    filtered_hits = [h for h in hits if (h.relevance or 0.0) >= relevance_floor]
+    evidence = build_evidence(filtered_hits, alert_dict.get("submitted_at")) if memory_state == "matched" else []
 
     ranked_fixes: list[scoring.RankedFix] = []
     warnings: list[dict[str, Any]] = []
     team_hint: dict[str, Any] | None = None
     recurrence: dict[str, Any] | None = None
 
-    if memory_state == "matched" and hits:
-        top_incident_id = incidents.first_resolvable([h.incident_id for h in hits])
+    if memory_state == "matched" and filtered_hits:
+        top_incident_id = incidents.first_resolvable([h.incident_id for h in filtered_hits])
         if top_incident_id is not None:
             pool = incidents.pattern_pool(top_incident_id)
             if ledger_data is not None:
                 counts = incidents.ledger_counts_for(top_incident_id, ledger_data)
-                ranked_fixes = scoring.rank_fixes(hits, pool, counts)
+                ranked_fixes = scoring.rank_fixes(filtered_hits, pool, counts)
             recurrence = incidents.compute_recurrence(pool)
             team_hint = incidents.compute_team_hint(pool)
             warnings = incidents.build_warnings(ranked_fixes, pool, recurrence)
 
     return AlertAnalysis(
         memory_state=memory_state,
-        hits=hits,
+        hits=filtered_hits,
         evidence=evidence,
         ranked_fixes=ranked_fixes,
         warnings=warnings,

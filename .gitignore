@@ -10,3 +10,6 @@ dist/
 
 backend/data/ledger.json
 check-results.txt
+.env.local
+.env.production
+*.log

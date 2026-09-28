@@ -88,6 +88,21 @@ async def main() -> int:
         assert res.memory_state == "no_match", f"Expected no_match for {title}, got {res.memory_state}"
     print("All unrelated alerts evaluated to 'no_match': OK")
 
+    # --- Evidence floor before/after for the 5 demo alerts -------------------------
+    print("\n\n=== Evidence relevance floor: before vs after (dynamic max(0.05, 0.25*best)) ===")
+    print(f"{'alert_id':<10} {'before (flat 0.05)':<45} {'after (dynamic floor)'}")
+    print("-" * 110)
+    for alert in demo_alerts:
+        query = incidents.alert_query(alert)
+        outcome = await memory.recall_merged([memory.BANK_INCIDENTS, memory.BANK_LIVE], query, max_tokens=4096)
+        hits = outcome.hits[:analysis.RECALL_TOP_N]
+        best = max((h.relevance or 0.0 for h in hits), default=0.0)
+        floor_dynamic = max(analysis.NO_MATCH_THRESHOLD, analysis.EVIDENCE_FLOOR_FRACTION * best)
+
+        before_ids = [h.incident_id for h in hits if (h.relevance or 0.0) >= analysis.NO_MATCH_THRESHOLD]
+        after_ids = [h.incident_id for h in hits if (h.relevance or 0.0) >= floor_dynamic]
+        print(f"{alert['alert_id']:<10} {str(before_ids):<45} {after_ids}  (floor={floor_dynamic:.4f})")
+
     await memory.get_client().aclose()
     return 0
 

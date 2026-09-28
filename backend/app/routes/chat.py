@@ -3,6 +3,13 @@ incident_id is given), answer via llm.py using ONLY recalled evidence + ledger f
 Same citation guard as GET /incidents/{id}/briefing/stream: every INC-xxx cited in the
 answer must be one of the recalled evidence ids, else regenerate once, then a template
 answer built from the evidence -- never the LLM's un-guarded text.
+
+Prompt 4c rules:
+- When incident_id is given, the current incident itself is excluded from evidence and
+  citations -- it may be used only as alert context for the query (it isn't prior history).
+- When the LLM answer says there is no relevant history (template_answer path with no
+  evidence OR when cited is empty and the answer contains "no relevant"), return
+  evidence: [] so the UI can distinguish "no history" from "has history but unclear".
 """
 from __future__ import annotations
 
@@ -12,6 +19,14 @@ from app import analysis, incidents, ledger, llm, memory
 from app.models import ChatRequest, ChatResponse, Evidence
 
 router = APIRouter()
+
+# Phrases that indicate the model is saying "I have no relevant history"
+_NO_HISTORY_PHRASES = (
+    "no relevant incident history",
+    "no relevant history",
+    "i don't have any relevant",
+    "i have no relevant",
+)
 
 
 def _ledger_facts_text(top_incident_id: str | None) -> str:
@@ -76,24 +91,36 @@ def _template_answer(evidence: list[dict]) -> str:
     return f"Based on {len(evidence)} recalled incident(s) ({ids}), see the evidence panel for the details behind this."
 
 
+def _answer_says_no_history(answer: str) -> bool:
+    lower = answer.lower()
+    return any(phrase in lower for phrase in _NO_HISTORY_PHRASES)
+
+
 @router.post("/chat", response_model=ChatResponse)
 async def post_chat(payload: ChatRequest) -> ChatResponse:
+    current_incident_id: str | None = None
     incident_context = ""
     if payload.incident_id is not None:
         incident = incidents.get_incident(payload.incident_id)
         if incident is None:
             raise HTTPException(status_code=404, detail={"error": {"code": "not_found", "message": "incident not found"}})
+        current_incident_id = payload.incident_id
         incident_context = f" {incident.get('title', '')}. {incident.get('symptoms', '')}"
 
     query = f"{payload.question}{incident_context}"
     outcome = await memory.recall_merged([memory.BANK_INCIDENTS, memory.BANK_LIVE], query)
     # Same no_match floor as analysis.analyze_alert() -- otherwise an unrelated question
     # still surfaces whatever the lowest-relevance hits in the bank happen to be.
-    hits = [h for h in outcome.hits if (h.relevance or 0.0) >= analysis.NO_MATCH_THRESHOLD][: analysis.RECALL_TOP_N]
-    evidence = analysis.build_evidence(hits, None)
+    raw_hits = [h for h in outcome.hits if (h.relevance or 0.0) >= analysis.NO_MATCH_THRESHOLD][: analysis.RECALL_TOP_N]
+
+    # Exclude the current incident from prior-occurrence evidence -- it is used only
+    # as alert context for the query, not as a prior history reference.
+    prior_hits = [h for h in raw_hits if h.incident_id != current_incident_id]
+
+    evidence = analysis.build_evidence(prior_hits, None)
     allowed = {e["incident_id"] for e in evidence}
 
-    top_incident_id = incidents.first_resolvable([h.incident_id for h in hits]) if hits else None
+    top_incident_id = incidents.first_resolvable([h.incident_id for h in prior_hits]) if prior_hits else None
     ledger_facts = _ledger_facts_text(top_incident_id)
 
     answer: str | None = None
@@ -114,4 +141,10 @@ async def post_chat(payload: ChatRequest) -> ChatResponse:
     if answer is None:
         answer = _template_answer(evidence)
 
-    return ChatResponse(answer=answer, evidence=[Evidence(**e) for e in evidence])
+    # When the answer says there is no relevant history, return evidence: [] so the UI
+    # can clearly show "no history" rather than confusing evidence cards that weren't cited.
+    final_evidence = evidence
+    if _answer_says_no_history(answer):
+        final_evidence = []
+
+    return ChatResponse(answer=answer, evidence=[Evidence(**e) for e in final_evidence])
