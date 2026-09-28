@@ -20,10 +20,11 @@ DEDUPE_WINDOW_MINUTES = 5
 
 
 def alert_query(alert: dict[str, Any]) -> str:
-    """The recall query built from an alert -- shared by routes/alert.py and
-    scripts/check_recall.py so the calibration script tests exactly what production
-    does, never a lookalike."""
-    return f"{alert['title']}. {alert.get('symptoms') or ''} {alert['error_message']}"
+    """The recall query built from an alert -- shared by routes/alert.py,
+    routes/feedback.py and scripts/check_recall.py so the calibration script tests
+    exactly what production does, never a lookalike. Defensive .get()s: seed incidents
+    (also passed through here, e.g. by routes/feedback.py) don't carry error_message."""
+    return f"{alert.get('title', '')}. {alert.get('symptoms') or ''} {alert.get('error_message') or ''}"
 
 _live_incidents: dict[str, dict[str, Any]] = {}
 _live_feedback: list[dict[str, Any]] = []
@@ -42,6 +43,10 @@ def next_incident_id() -> str:
     incident_id = f"INC-{_next_number:03d}"
     _next_number += 1
     return incident_id
+
+
+def feedback_for(incident_id: str) -> list[dict[str, Any]]:
+    return [fb for fb in _live_feedback if fb["incident_id"] == incident_id]
 
 
 def _parse_ts(value: str) -> datetime:
@@ -276,3 +281,44 @@ def compute_recurrence(pool: list[dict[str, Any]]) -> dict[str, Any] | None:
         "open_permanent_fix_incident_id": open_permanent_fix_incident_id,
         "message": message,
     }
+
+
+def incident_ids_with_outcome(pool: list[dict[str, Any]], fix_type: str, outcome: str) -> list[str]:
+    return [
+        inc["incident_id"]
+        for inc in pool
+        if any(fa["fix_type"] == fix_type and fa["outcome"] == outcome for fa in inc.get("fix_attempts", []))
+    ]
+
+
+def build_warnings(ranked_fixes: list, pool: list[dict[str, Any]], recurrence: dict[str, Any] | None) -> list[dict[str, Any]]:
+    """Shared by routes/alert.py and routes/feedback.py. Returns plain dicts shaped like
+    the Warning contract type -- the caller wraps them in models.Warning."""
+    warnings: list[dict[str, Any]] = []
+    for fix in ranked_fixes:
+        if fix.failed > 0:
+            warnings.append(
+                {
+                    "kind": "failed_fix",
+                    "message": f"{fix.label} failed {fix.failed} of {fix.attempts} time(s) for this pattern -- try another fix first.",
+                    "incident_ids": incident_ids_with_outcome(pool, fix.fix_type, "failed"),
+                }
+            )
+    if recurrence is not None:
+        warnings.append(
+            {
+                "kind": "recurrence",
+                "message": recurrence["message"],
+                "incident_ids": [inc["incident_id"] for inc in pool],
+            }
+        )
+        open_id = recurrence.get("open_permanent_fix_incident_id")
+        if open_id:
+            warnings.append(
+                {
+                    "kind": "open_permanent_fix",
+                    "message": f"The permanent fix for this pattern (raised in {open_id}'s postmortem) is still open.",
+                    "incident_ids": [open_id],
+                }
+            )
+    return warnings

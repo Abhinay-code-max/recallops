@@ -81,46 +81,6 @@ def _build_evidence(hits: list[memory.RecallHit], submitted_at: str | None) -> l
     return evidence
 
 
-def _incident_ids_with_outcome(pool: list[dict], fix_type: str, outcome: str) -> list[str]:
-    return [
-        inc["incident_id"]
-        for inc in pool
-        if any(fa["fix_type"] == fix_type and fa["outcome"] == outcome for fa in inc.get("fix_attempts", []))
-    ]
-
-
-def _build_warnings(ranked_fixes: list[scoring.RankedFix], pool: list[dict], recurrence: dict | None) -> list[WarningOut]:
-    warnings: list[WarningOut] = []
-    for fix in ranked_fixes:
-        if fix.failed > 0:
-            failed_ids = _incident_ids_with_outcome(pool, fix.fix_type, "failed")
-            warnings.append(
-                WarningOut(
-                    kind="failed_fix",
-                    message=f"{fix.label} failed {fix.failed} of {fix.attempts} time(s) for this pattern -- try another fix first.",
-                    incident_ids=failed_ids,
-                )
-            )
-    if recurrence is not None:
-        warnings.append(
-            WarningOut(
-                kind="recurrence",
-                message=recurrence["message"],
-                incident_ids=[inc["incident_id"] for inc in pool],
-            )
-        )
-        open_id = recurrence.get("open_permanent_fix_incident_id")
-        if open_id:
-            warnings.append(
-                WarningOut(
-                    kind="open_permanent_fix",
-                    message=f"The permanent fix for this pattern (raised in {open_id}'s postmortem) is still open.",
-                    incident_ids=[open_id],
-                )
-            )
-    return warnings
-
-
 def _retain_content(incident_id: str, alert: Alert, masked_log: str) -> str:
     return (
         f"Date: {alert.submitted_at} | {incident_id} | {alert.service} | {alert.severity}\n"
@@ -184,7 +144,7 @@ async def post_alert(alert: Alert) -> AlertResponse:
         team_hint_data = incidents.compute_team_hint(pool)
         if team_hint_data is not None:
             team_hint = TeamHint(**team_hint_data)
-        warnings = _build_warnings(ranked_fixes, pool, recurrence_data)
+        warnings = [WarningOut(**w) for w in incidents.build_warnings(ranked_fixes, pool, recurrence_data)]
 
     # --- store as a live incident (skip on dedupe -- it merges into the existing one) ---
     if not deduplicated:
