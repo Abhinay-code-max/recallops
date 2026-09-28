@@ -152,6 +152,24 @@ def main() -> int:
     check(payments_rollback_failures >= 2, f"expected >=2 failed payments-api rollbacks, found {payments_rollback_failures}")
     check(len(permanent_fix_open_ids) == 1, f"expected exactly 1 incident with permanent_fix_open=true, found {permanent_fix_open_ids}")
 
+    # --- planted fake secrets (for testing memory.py's masking-before-retain, not real creds) ---
+    fake_secrets = {
+        "Authorization: Bearer demo-token-0000": None,
+        "password=hunter2-demo": None,
+    }
+    for inc in incidents:
+        for secret in fake_secrets:
+            if secret in inc["log_snippet"]:
+                fake_secrets[secret] = inc["incident_id"]
+    for secret, found_in in fake_secrets.items():
+        check(found_in is not None, f"planted fake secret {secret!r} not found in any incident's log_snippet")
+    check(
+        len({v for v in fake_secrets.values() if v is not None}) == len(fake_secrets),
+        f"planted fake secrets should live in two different incidents, found: {fake_secrets}",
+    )
+    if all(fake_secrets.values()):
+        print(f"\nPlanted fake secrets (unmasked in seed data on purpose): {fake_secrets}")
+
     # --- fix ranking formula sanity check (spec section 5) ---------------------
     # score = similarity * (worked + 0.5*partial + 1) / (attempts + 2) - 0.3 * recent_failures
     def score_fix(worked, partial, failed, recent_failures, similarity=1.0):
