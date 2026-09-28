@@ -176,18 +176,31 @@ def main() -> int:
         attempts = worked + partial + failed
         return similarity * (worked + 0.5 * partial + 1) / (attempts + 2) - 0.3 * recent_failures
 
+    pool_incidents = [
+        inc
+        for inc in incidents
+        if inc["service"] == "payments-api" and "pool-exhaustion-friday-deploy" in inc.get("pattern_tags", [])
+    ]
+    pool_incidents.sort(key=lambda inc: inc["timestamp"])
+    # recent_failures: failed attempts of that fix in the last 2 incidents of the pattern
+    # (chronologically), not all-time -- an older failure ages out of "recent".
+    recent_incident_ids = {inc["incident_id"] for inc in pool_incidents[-2:]}
+
     pool_fix_counts = {}
-    for inc in incidents:
-        if inc["service"] == "payments-api" and "pool-exhaustion-friday-deploy" in inc.get("pattern_tags", []):
-            for fa in inc["fix_attempts"]:
-                counts = pool_fix_counts.setdefault(fa["fix_type"], {"worked": 0, "partial": 0, "failed": 0})
-                counts[fa["outcome"]] += 1
+    for inc in pool_incidents:
+        for fa in inc["fix_attempts"]:
+            counts = pool_fix_counts.setdefault(
+                fa["fix_type"], {"worked": 0, "partial": 0, "failed": 0, "recent_failures": 0}
+            )
+            counts[fa["outcome"]] += 1
+            if fa["outcome"] == "failed" and inc["incident_id"] in recent_incident_ids:
+                counts["recent_failures"] += 1
 
     expected_pool_fix_counts = {
-        "increase_postgres_pool_size": {"worked": 3, "partial": 0, "failed": 0},
-        "kill_idle_db_connections": {"worked": 1, "partial": 1, "failed": 0},
-        "restart_payments_pods": {"worked": 0, "partial": 1, "failed": 0},
-        "rollback_to_previous_deploy": {"worked": 0, "partial": 0, "failed": 2},
+        "increase_postgres_pool_size": {"worked": 3, "partial": 0, "failed": 0, "recent_failures": 0},
+        "kill_idle_db_connections": {"worked": 1, "partial": 1, "failed": 0, "recent_failures": 0},
+        "restart_payments_pods": {"worked": 0, "partial": 1, "failed": 0, "recent_failures": 0},
+        "rollback_to_previous_deploy": {"worked": 0, "partial": 0, "failed": 2, "recent_failures": 1},
     }
     for fix_type, expected_counts in expected_pool_fix_counts.items():
         check(
@@ -195,15 +208,15 @@ def main() -> int:
             f"{fix_type} counts changed: expected {expected_counts}, got {pool_fix_counts.get(fix_type)}",
         )
 
-    # recent_failures: count of failed attempts on record for that fix_type. All 4 pool
-    # exhaustion incidents fall within the ~4-month seed window, so every recorded failure
-    # counts as "recent" for this check -- there's no separate decay/lookback window yet.
     scores = {
-        fix_type: score_fix(c["worked"], c["partial"], c["failed"], recent_failures=c["failed"])
+        fix_type: score_fix(c["worked"], c["partial"], c["failed"], recent_failures=c["recent_failures"])
         for fix_type, c in pool_fix_counts.items()
     }
 
-    print("\nFix ranking scores (equal similarity=1.0) for payments-api pool exhaustion:")
+    print(
+        f"\nFix ranking scores (equal similarity=1.0) for payments-api pool exhaustion "
+        f"[recent window = last 2 incidents: {sorted(recent_incident_ids)}]:"
+    )
     for fix_type, s in sorted(scores.items(), key=lambda kv: -kv[1]):
         print(f"   {fix_type}: {s:.3f}  (counts={pool_fix_counts[fix_type]})")
 
@@ -216,22 +229,23 @@ def main() -> int:
     ]
     check(ranked == expected_rank_order, f"fix ranking order is {ranked}, expected {expected_rank_order}")
 
-    # one extra failure on kill_idle_db_connections should drop it below restart_payments_pods
+    # one extra (recent) failure on kill_idle_db_connections should drop it below restart_payments_pods
     bumped_failed = pool_fix_counts["kill_idle_db_connections"]["failed"] + 1
+    bumped_recent_failures = pool_fix_counts["kill_idle_db_connections"]["recent_failures"] + 1
     bumped_score = score_fix(
         pool_fix_counts["kill_idle_db_connections"]["worked"],
         pool_fix_counts["kill_idle_db_connections"]["partial"],
         bumped_failed,
-        recent_failures=bumped_failed,
+        recent_failures=bumped_recent_failures,
     )
     print(
-        f"   kill_idle_db_connections +1 failure -> {bumped_score:.3f} "
+        f"   kill_idle_db_connections +1 recent failure -> {bumped_score:.3f} "
         f"(restart_payments_pods stays at {scores['restart_payments_pods']:.3f})"
     )
     check(
         bumped_score < scores["restart_payments_pods"],
-        f"kill_idle_db_connections with one extra failure ({bumped_score:.3f}) did not drop "
-        f"below restart_payments_pods ({scores['restart_payments_pods']:.3f})",
+        f"kill_idle_db_connections with one extra recent failure ({bumped_score:.3f}) did not "
+        f"drop below restart_payments_pods ({scores['restart_payments_pods']:.3f})",
     )
 
     # --- seed_team.json -------------------------------------------------------
