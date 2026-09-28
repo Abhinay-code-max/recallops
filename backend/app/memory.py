@@ -329,11 +329,29 @@ def pattern_siblings(top_incident_id: str) -> list[dict[str, Any]]:
     ]
 
 
+REFLECT_TOTAL_TIMEOUT_SECONDS = 45.0
+# A real reflect() over the full incidents bank with a ~5KB context measured ~19s in
+# testing -- comfortably under HINDSIGHT_TIMEOUT once that's raised (see .env), but
+# still slow enough that a single reflect deserves its own total cap across retries
+# (recall_merged already has one; reflect() didn't) so a bad run can't hang a route for
+# 3x the per-attempt timeout.
+
+
 async def reflect(bank_id: str, query: str, *, budget: str = "low", context: str | None = None) -> str:
     client = get_client()
-    response = await _with_retries(
-        lambda: client.areflect(bank_id=bank_id, query=query, budget=budget, context=context),
-        max_attempts=_RECALL_REFLECT_MAX_ATTEMPTS,
-        op_name=f"reflect({bank_id})",
-    )
-    return response.text
+
+    async def _do() -> str:
+        response = await _with_retries(
+            lambda: client.areflect(bank_id=bank_id, query=query, budget=budget, context=context),
+            max_attempts=_RECALL_REFLECT_MAX_ATTEMPTS,
+            op_name=f"reflect({bank_id})",
+        )
+        return response.text
+
+    try:
+        return await asyncio.wait_for(_do(), timeout=REFLECT_TOTAL_TIMEOUT_SECONDS)
+    except MemoryUnavailableError:
+        raise
+    except Exception as exc:
+        logger.warning("reflect(%s) total timeout: %s", bank_id, type(exc).__name__)
+        raise MemoryUnavailableError(f"Hindsight reflect({bank_id}) timed out") from exc

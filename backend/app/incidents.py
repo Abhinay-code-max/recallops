@@ -284,40 +284,51 @@ def compute_team_hint(pool: list[dict[str, Any]]) -> dict[str, Any] | None:
     }
 
 
-def compute_recurrence(pool: list[dict[str, Any]]) -> dict[str, Any] | None:
-    """occurrence_number counts the pool PLUS the alert being handled right now (which
-    isn't in the pool yet -- it's being scored against pre-existing incidents)."""
-    if not pool:
-        return None
-    occurrence_number = len(pool) + 1
-
+def _pattern_stats(pool: list[dict[str, Any]]) -> dict[str, Any]:
+    """interval_days_avg + open_permanent_fix_incident_id -- the math shared by
+    compute_recurrence() (for /alert, +1 for the new alert being scored) and
+    historical_recurrence() (for /insights, no +1 -- just what's happened so far)."""
     interval_days_avg: float | None = None
     if len(pool) >= 2:
         timestamps = sorted(_parse_ts(inc["timestamp"]) for inc in pool)
         gaps = [(b - a).total_seconds() / 86400 for a, b in zip(timestamps, timestamps[1:])]
         interval_days_avg = round(sum(gaps) / len(gaps), 1)
-
     open_permanent_fix_incident_id = next(
         (inc["incident_id"] for inc in pool if inc.get("permanent_fix_open")), None
     )
+    return {"interval_days_avg": interval_days_avg, "open_permanent_fix_incident_id": open_permanent_fix_incident_id}
 
+
+def _recurrence_from_pool(pool: list[dict[str, Any]], extra_occurrence: int) -> dict[str, Any] | None:
+    if not pool:
+        return None
+    occurrence_number = len(pool) + extra_occurrence
     if occurrence_number <= 1:
         return None
 
-    message = f"This is occurrence #{occurrence_number} of this pattern"
-    if interval_days_avg is not None:
-        message += f", recurring roughly every {interval_days_avg:g} days"
-    if open_permanent_fix_incident_id:
-        message += f". The permanent fix from {open_permanent_fix_incident_id} is still open."
+    stats = _pattern_stats(pool)
+    message = f"This is occurrence #{occurrence_number} of this pattern" if extra_occurrence else f"Recurred {occurrence_number} times"
+    if stats["interval_days_avg"] is not None:
+        message += f", recurring roughly every {stats['interval_days_avg']:g} days"
+    if stats["open_permanent_fix_incident_id"]:
+        message += f". The permanent fix from {stats['open_permanent_fix_incident_id']} is still open."
     else:
         message += "."
 
-    return {
-        "occurrence_number": occurrence_number,
-        "interval_days_avg": interval_days_avg,
-        "open_permanent_fix_incident_id": open_permanent_fix_incident_id,
-        "message": message,
-    }
+    return {"occurrence_number": occurrence_number, **stats, "message": message}
+
+
+def compute_recurrence(pool: list[dict[str, Any]]) -> dict[str, Any] | None:
+    """For POST /alert: occurrence_number counts the pool PLUS the alert being handled
+    right now (which isn't in the pool yet -- it's being scored against pre-existing
+    incidents)."""
+    return _recurrence_from_pool(pool, extra_occurrence=1)
+
+
+def historical_recurrence(pool: list[dict[str, Any]]) -> dict[str, Any] | None:
+    """For GET /insights: occurrence_number is just what's happened so far -- there's no
+    new alert being scored."""
+    return _recurrence_from_pool(pool, extra_occurrence=0)
 
 
 def incident_ids_with_outcome(pool: list[dict[str, Any]], fix_type: str, outcome: str) -> list[str]:
@@ -359,3 +370,121 @@ def build_warnings(ranked_fixes: list, pool: list[dict[str, Any]], recurrence: d
                 }
             )
     return warnings
+
+
+def all_incidents_normalized() -> list[dict[str, Any]]:
+    """Every incident (seed + live) for GET /insights, normalized to a common shape:
+    incident_id, timestamp, service, error_signature, title, permanent_fix_open,
+    fix_attempts. Live incidents with no error_signature (can't happen via POST /alert,
+    but defensive) are skipped -- they can't be grouped into any pattern."""
+    result = list(memory.all_seed_incidents())
+    for inc in _live_incidents.values():
+        if not inc.get("error_signature"):
+            continue
+        result.append(
+            {
+                "incident_id": inc["incident_id"],
+                "timestamp": inc["submitted_at"],
+                "service": inc["service"],
+                "error_signature": inc["error_signature"],
+                "title": inc["title"],
+                "permanent_fix_open": False,
+                "fix_attempts": inc.get("fix_attempts", []),
+                "postmortem": inc.get("postmortem"),
+            }
+        )
+    return result
+
+
+def compute_patterns() -> list[dict[str, Any]]:
+    by_signature: dict[str, list[dict[str, Any]]] = {}
+    for inc in all_incidents_normalized():
+        by_signature.setdefault(inc["error_signature"], []).append(inc)
+
+    patterns = []
+    for signature, incs in sorted(by_signature.items()):
+        stats = _pattern_stats(incs)
+        tags = incs[0].get("pattern_tags") or []
+        title_source = tags[0] if tags else signature
+        patterns.append(
+            {
+                "title": title_source.replace("-", " ").replace("_", " ").capitalize(),
+                "service": incs[0]["service"],
+                "frequency": len(incs),
+                "interval_days": stats["interval_days_avg"],
+                "incident_ids": sorted(i["incident_id"] for i in incs),
+            }
+        )
+    return patterns
+
+
+def compute_open_permanent_fixes() -> list[dict[str, Any]]:
+    results = []
+    for inc in all_incidents_normalized():
+        if not inc.get("permanent_fix_open"):
+            continue
+        postmortem = inc.get("postmortem")
+        message = postmortem if isinstance(postmortem, str) else f"The permanent fix for {inc['incident_id']} is still open."
+        results.append({"incident_id": inc["incident_id"], "title": inc.get("title", ""), "message": message})
+    return results
+
+
+def compute_team_knowledge() -> list[dict[str, Any]]:
+    pattern_counts: dict[str, dict[str, int]] = {}
+    resolver_incidents: dict[str, set[str]] = {}
+
+    for inc in all_incidents_normalized():
+        signature = inc["error_signature"]
+        for fix in inc.get("fix_attempts", []):
+            if fix.get("outcome") != "worked" or not fix.get("resolver"):
+                continue
+            person = fix["resolver"]
+            pattern_counts.setdefault(person, {})
+            pattern_counts[person][signature] = pattern_counts[person].get(signature, 0) + 1
+            resolver_incidents.setdefault(person, set()).add(inc["incident_id"])
+
+    results = []
+    for person in sorted(pattern_counts):
+        ranked = sorted(pattern_counts[person].items(), key=lambda kv: -kv[1])
+        parts = [f"{sig.replace('_', ' ')} {count} time{'s' if count != 1 else ''}" for sig, count in ranked]
+        results.append(
+            {
+                "person": person,
+                "summary": f"Resolved {', '.join(parts)}.",
+                "incident_ids": sorted(resolver_incidents[person]),
+            }
+        )
+    return results
+
+
+def compute_fix_speed_comparison() -> dict[str, Any]:
+    """first-fix rollback vs resize, average minutes to effect, across every incident
+    where that fix_type was the FIRST one attempted (not any attempt -- speed of the
+    team's first instinct, which is the comparison that matters for the demo)."""
+    rollback_minutes: list[float] = []
+    resize_minutes: list[float] = []
+
+    for inc in all_incidents_normalized():
+        fix_attempts = inc.get("fix_attempts") or []
+        if not fix_attempts:
+            continue
+        first = fix_attempts[0]
+        minutes = first.get("minutes_to_effect")
+        if minutes is None:
+            continue
+        if first["fix_type"] == "rollback_to_previous_deploy":
+            rollback_minutes.append(minutes)
+        elif first["fix_type"] == "increase_postgres_pool_size":
+            resize_minutes.append(minutes)
+
+    rollback_avg = round(sum(rollback_minutes) / len(rollback_minutes), 1) if rollback_minutes else None
+    resize_avg = round(sum(resize_minutes) / len(resize_minutes), 1) if resize_minutes else None
+    return {
+        "first_fix_rollback_avg_min": rollback_avg,
+        "first_fix_resize_avg_min": resize_avg,
+        "sample_size": len(rollback_minutes) + len(resize_minutes),
+        "note": (
+            f"Based on {len(rollback_minutes)} incident(s) where rollback was tried first "
+            f"and {len(resize_minutes)} where a pool resize was tried first."
+        ),
+    }

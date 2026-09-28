@@ -23,7 +23,7 @@ from typing import Any
 
 from app import incidents as incidents_state
 from app import ledger, memory
-from app.routes import briefing
+from app.routes import briefing, insights
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 SEED_CONCURRENCY = 5
@@ -158,5 +158,6 @@ async def run_reset() -> float:
     await memory.reset_live_bank()
     incidents_state.reset_live_state()
     briefing.clear_cache()
+    insights.clear_cache()
     ledger.ensure_fresh()
     return time.time() - t0

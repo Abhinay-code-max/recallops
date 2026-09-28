@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException
 
 from app import incidents, ledger, memory, scoring
 from app.models import FeedbackRequest, FeedbackResponse, RankedFixOut, Warning as WarningOut
+from app.routes import insights
 
 router = APIRouter()
 
@@ -18,6 +19,7 @@ async def post_feedback(feedback: FeedbackRequest) -> FeedbackResponse:
         raise HTTPException(status_code=404, detail={"error": {"code": "not_found", "message": "incident not found"}})
 
     incidents.record_feedback(feedback.incident_id, feedback.fix_type, feedback.outcome, feedback.notes)
+    insights.clear_cache()
 
     memories_stored = 0
     try:

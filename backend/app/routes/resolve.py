@@ -6,6 +6,7 @@ from fastapi import APIRouter, HTTPException
 
 from app import incidents, llm, memory
 from app.models import Postmortem, ResolveRequest, ResolveResponse
+from app.routes import insights
 
 router = APIRouter()
 
@@ -65,6 +66,7 @@ async def post_resolve(payload: ResolveRequest) -> ResolveResponse:
     postmortem = await _generate_postmortem(incident, feedback, payload.resolver, payload.resolution_notes)
 
     incidents.record_resolution(payload.incident_id, payload.resolver, payload.minutes_to_resolve, postmortem)
+    insights.clear_cache()
 
     memories_stored = 0
     try:

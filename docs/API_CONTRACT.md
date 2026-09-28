@@ -34,10 +34,11 @@ Postmortem   { timeline: {time,event}[], root_cause, fix, action_items: string[]
 | POST /compare | `{alert:Alert}` | `{without_memory:{text}, with_memory:{sections:BriefingSections, evidence:Evidence[], ranked_fixes:RankedFix[], warnings:Warning[]}}` |
 | GET /incidents | - | `[{incident_id, title, service, severity, date, resolver, minutes_to_resolve, outcome:"worked"|"partial"|"failed"|"open"}]` |
 | GET /incidents/{id} | - | list fields plus `{log_snippet, symptoms, root_cause, fix_attempts:[{fix_type,outcome,minutes_to_effect,resolver,notes}], postmortem:string|Postmortem}` |
-| GET /insights | - | `{patterns:[{title, service, frequency:int, interval_days|null, incident_ids}], recurring:[{service, title, recurrence:Recurrence}], open_permanent_fixes:[{incident_id,title,message}], team_knowledge:[{person,summary,incident_ids}], fix_speed_comparison:{first_fix_rollback_avg_min, first_fix_resize_avg_min, sample_size, note}}` |
+| GET /insights | - | `{patterns:[{title, service, frequency:int, interval_days|null, incident_ids}], recurring:[{service, title, recurrence:Recurrence}], open_permanent_fixes:[{incident_id,title,message}], team_knowledge:[{person,summary,incident_ids}], fix_speed_comparison:{first_fix_rollback_avg_min, first_fix_resize_avg_min, sample_size, note}, reflect_summary:string}` |
 | GET /metrics | - | `{counts:{incidents_handled,memories_stored}, historical_avg_mttr_min, real_series:[{n,incident_id,mttr_min,live?:boolean}], simulated_series:[{n,mttr_min,accuracy}], simulated:true}` |
 
 Notes
 - The simulated series must be labelled "Simulated" in the UI. The real series is the seeded history.
 - `score` and its inputs (similarity, worked, partial, failed, recent_failures) are always shown in the UI so the ranking is transparent.
 - `memory_state` drives the UI banners: `empty` = no history yet, `no_match` = history exists but nothing similar.
+- `reflect_summary` on GET /insights is narrative only, from one `reflect` call given the other fields as context -- the UI must never read a number out of it; every number in the response is computed from structured data.
