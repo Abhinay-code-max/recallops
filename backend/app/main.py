@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app import ledger, memory
+from app import ledger, memory, seeding
 from app.config import get_settings
 from app.models import HealthResponse
 from app.routes import alert, briefing, chat, compare, demo_alerts, feedback, incidents as incidents_routes, insights, metrics, reset, resolve, seed
@@ -19,7 +19,11 @@ async def lifespan(app: FastAPI):
     # module's fixture) would reuse the previous lifespan's now-closed client instance
     # and every Hindsight call would fail with "Session is closed".
     memory.get_client.cache_clear()
+    await memory.ensure_banks()
     ledger.ensure_fresh()
+    insights.invalidate()  # kick off reflect; if the bank turns out empty below, the
+    # auto-seed's own completion invalidates (and so re-reflects) again once seeded.
+    seeding.start_auto_seed_if_empty()  # never blocks startup -- see app/seeding.py
     yield
     await memory.get_client().aclose()
 
@@ -28,7 +32,7 @@ app = FastAPI(title="RecallOps API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.frontend_origin],
+    allow_origins=settings.frontend_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -50,4 +54,4 @@ app.include_router(chat.router)
 @app.get("/health", response_model=HealthResponse)
 async def health() -> HealthResponse:
     memory_status, _elapsed = await memory.ping()
-    return HealthResponse(status="ok", memory=memory_status)
+    return HealthResponse(status="ok", memory=memory_status, seeding=seeding.is_seeding())

@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 class HealthResponse(BaseModel):
     status: Literal["ok"]
     memory: Literal["ok", "slow", "down"]
+    seeding: bool
 
 
 class SeedResponse(BaseModel):

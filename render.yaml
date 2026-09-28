@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: recallops-api
+    env: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: HINDSIGHT_API_KEY
+        sync: false
+      - key: HINDSIGHT_BASE_URL
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: FRONTEND_ORIGIN
+        sync: false

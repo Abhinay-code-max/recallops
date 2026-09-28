@@ -28,6 +28,32 @@ from app.routes import briefing, insights
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 SEED_CONCURRENCY = 5
 
+_auto_seeding = False
+
+
+def is_seeding() -> bool:
+    """For GET /health's `seeding` flag."""
+    return _auto_seeding
+
+
+async def _auto_seed_if_empty() -> None:
+    global _auto_seeding
+    if not await memory.is_incidents_bank_empty():
+        return
+    _auto_seeding = True
+    try:
+        await run_seed()
+    finally:
+        _auto_seeding = False
+
+
+def start_auto_seed_if_empty() -> None:
+    """Fire-and-forget, called once from main.py's lifespan startup -- never blocks
+    startup. A cold Hindsight Cloud bank (first deploy, or a bank wiped outside this
+    app) gets seeded in the background while the app is already serving requests;
+    GET /health's `seeding` flag reports progress in the meantime."""
+    asyncio.create_task(_auto_seed_if_empty())
+
 
 def _slug(name: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
@@ -149,6 +175,7 @@ async def run_seed() -> SeedResult:
     failed = sum(1 for r in results if not r)
 
     ledger.write_ledger(incidents)
+    insights.invalidate()
 
     return SeedResult(seeded=seeded, failed=failed, duration_s=time.time() - t0)
 

@@ -19,6 +19,12 @@ class Settings:
 
     frontend_origin: str = os.environ.get("FRONTEND_ORIGIN", "http://localhost:5173")
 
+    @property
+    def frontend_origins(self) -> list[str]:
+        """FRONTEND_ORIGIN as a comma-separated list (deploy readiness: prod + preview
+        URLs, etc.) -- a single origin with no comma still works, unchanged."""
+        return [origin.strip() for origin in self.frontend_origin.split(",") if origin.strip()]
+
 
 @lru_cache
 def get_settings() -> Settings:

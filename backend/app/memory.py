@@ -287,6 +287,19 @@ async def ping() -> tuple[str, float]:
     return ("ok" if elapsed < 2.0 else "slow"), elapsed
 
 
+async def is_incidents_bank_empty() -> bool:
+    """Used at startup to decide whether to auto-seed in the background (deploy
+    readiness: a fresh Hindsight Cloud bank on first deploy). True on any error too --
+    if we can't tell, behave as if empty so a cold deploy still ends up seeded rather
+    than silently staying empty."""
+    client = get_client()
+    try:
+        response = await asyncio.wait_for(client.alist_memories(bank_id=BANK_INCIDENTS, limit=1), timeout=5.0)
+    except Exception:
+        return True
+    return response.total == 0
+
+
 _DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 
 

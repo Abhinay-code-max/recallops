@@ -22,7 +22,7 @@ Postmortem   { timeline: {time,event}[], root_cause, fix, action_items: string[]
 ## Endpoints
 | Method + path | Request | Response |
 |---|---|---|
-| GET /health | - | `{status:"ok", memory:"ok"|"slow"|"down"}` |
+| GET /health | - | `{status:"ok", memory:"ok"|"slow"|"down", seeding:boolean}` |
 | POST /seed | - | `{seeded:int, duration_s:number}` (idempotent) |
 | POST /reset | - | `{ok:true}` (returns memory to freshly seeded state) |
 | GET /demo-alerts | - | `[{alert_id, target_capability, title, alert:Alert}]` |
@@ -43,4 +43,5 @@ Notes
 - `memory_state` drives the UI banners: `empty` = no history yet, `no_match` = history exists but nothing similar.
 - `reflect_summary` on GET /insights is narrative only, from one `reflect` call given the other fields as context -- the UI must never read a number out of it; every number in the response is computed from structured data.
 - GET /insights returns immediately with the deterministic fields; `reflect_summary` is `null` and `reflect_status` is `"pending"` while reflect runs in the background (started at app startup, after POST /seed, POST /reset, POST /feedback and POST /resolve). Poll GET /insights again to pick up `"ready"` (or `"failed"`, still with the deterministic fields intact).
+- GET /health's `seeding` flag is true while a cold-start auto-seed (an empty Hindsight Cloud bank at startup) is running in the background; POST /seed's own response is unaffected either way.
 
