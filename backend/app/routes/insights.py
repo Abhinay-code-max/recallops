@@ -1,16 +1,20 @@
-"""GET /insights -- every number comes from deterministic, structured-data facts
-(app/incidents.py's compute_patterns/compute_open_permanent_fixes/compute_team_knowledge/
-compute_fix_speed_comparison, plus historical_recurrence per recurring pattern), never
-from Hindsight or the LLM. reflect() is called exactly once on the incidents bank, given
-the already-computed facts as context, and its text is attached as reflect_summary
-(narrative only) -- callers must never parse a number back out of it.
+"""GET /insights -- deterministic facts (app/incidents.py's compute_*, never Hindsight)
+are computed fresh on every request: cheap, local, so this always responds in well
+under a second. reflect_summary (str|None) and reflect_status
+("pending"|"ready"|"failed") come from a background task instead, so a slow reflect()
+call (up to ~45s -- see memory.REFLECT_TOTAL_TIMEOUT_SECONDS) never blocks the route.
 
-Cached (single result, no params to key on); invalidated by POST /feedback, POST
-/resolve, and POST /reset (each of those changes the structured data this depends on).
+reflect is (re)started: at app startup (main.py's lifespan, regardless of whether the
+bank is populated yet -- if it's empty, seeding.start_auto_seed_if_empty()'s own
+completion calls invalidate() again once there's real data to reflect on), after every
+POST /seed, after every POST /reset, and after POST /feedback / POST /resolve change
+the structured data the previous reflect_summary was about.
 """
 from __future__ import annotations
 
+import asyncio
 import json
+import logging
 
 from fastapi import APIRouter
 
@@ -26,34 +30,14 @@ from app.models import (
 )
 
 router = APIRouter()
+logger = logging.getLogger("recallops.insights")
 
-_cache: InsightsResponse | None = None
-
-
-def clear_cache() -> None:
-    global _cache
-    _cache = None
+_reflect_status: str = "pending"
+_reflect_summary: str | None = None
+_reflect_task: "asyncio.Task | None" = None
 
 
-def _reflect_context(patterns: list[dict], recurring: list[dict], open_fixes: list[dict], team: list[dict], fix_speed: dict) -> str:
-    return json.dumps(
-        {
-            "patterns": patterns,
-            "recurring": recurring,
-            "open_permanent_fixes": open_fixes,
-            "team_knowledge": team,
-            "fix_speed_comparison": fix_speed,
-        },
-        default=str,
-    )
-
-
-@router.get("/insights", response_model=InsightsResponse)
-async def get_insights() -> InsightsResponse:
-    global _cache
-    if _cache is not None:
-        return _cache
-
+def _compute_facts() -> dict:
     patterns = incidents.compute_patterns()
 
     recurring: list[dict] = []
@@ -66,29 +50,78 @@ async def get_insights() -> InsightsResponse:
         recurrence = incidents.historical_recurrence(incs)
         if recurrence is None:
             continue
-        recurring.append({"service": incs[0]["service"], "title": signature.replace("_", " ").capitalize(), "recurrence": recurrence})
+        recurring.append(
+            {"service": incs[0]["service"], "title": signature.replace("_", " ").capitalize(), "recurrence": recurrence}
+        )
 
-    open_fixes = incidents.compute_open_permanent_fixes()
-    team = incidents.compute_team_knowledge()
-    fix_speed = incidents.compute_fix_speed_comparison()
+    return {
+        "patterns": patterns,
+        "recurring": recurring,
+        "open_permanent_fixes": incidents.compute_open_permanent_fixes(),
+        "team_knowledge": incidents.compute_team_knowledge(),
+        "fix_speed_comparison": incidents.compute_fix_speed_comparison(),
+    }
 
-    context = _reflect_context(patterns, recurring, open_fixes, team, fix_speed)
+
+async def _run_reflect() -> None:
+    global _reflect_status, _reflect_summary
     try:
-        reflect_summary = await memory.reflect(
+        context = json.dumps(_compute_facts(), default=str)
+        summary = await memory.reflect(
             memory.BANK_INCIDENTS,
-            query="Given these computed patterns, recurring incidents, open permanent fixes, team knowledge and fix-speed comparison, what should the team know?",
+            query=(
+                "Given these computed patterns, recurring incidents, open permanent "
+                "fixes, team knowledge and fix-speed comparison, what should the team know?"
+            ),
             context=context,
         )
-    except memory.MemoryUnavailableError:
-        reflect_summary = "Memory reflection is unavailable right now; the figures above are still exact, computed from structured incident data."
+        _reflect_summary = summary
+        _reflect_status = "ready"
+    except Exception as exc:
+        logger.warning("background reflect failed: %s", type(exc).__name__)
+        _reflect_summary = None
+        _reflect_status = "failed"
 
-    response = InsightsResponse(
-        patterns=[InsightPattern(**p) for p in patterns],
-        recurring=[RecurringInsight(service=r["service"], title=r["title"], recurrence=Recurrence(**r["recurrence"])) for r in recurring],
-        open_permanent_fixes=[OpenPermanentFix(**f) for f in open_fixes],
-        team_knowledge=[TeamKnowledge(**t) for t in team],
-        fix_speed_comparison=FixSpeedComparison(**fix_speed),
-        reflect_summary=reflect_summary,
+
+def invalidate() -> None:
+    """Clears the cached reflect result and restarts the background task. Call after
+    anything that changes the structured data reflect summarizes: POST /seed,
+    POST /reset, POST /feedback, POST /resolve, and once at app startup.
+
+    Safe to call with no event loop running (e.g. sync test fixtures resetting module
+    state between tests): reflect_status still resets to "pending", but the background
+    task itself just doesn't start until the next call happens inside a running loop.
+    """
+    global _reflect_status, _reflect_summary, _reflect_task
+    if _reflect_task is not None and not _reflect_task.done():
+        _reflect_task.cancel()
+    _reflect_status = "pending"
+    _reflect_summary = None
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        _reflect_task = None  # no loop running -- don't even construct the coroutine
+        return
+    _reflect_task = asyncio.create_task(_run_reflect())
+
+
+# Earlier prompts' callers (and this module's own git history) named this clear_cache();
+# kept as an alias since "clearing" now also means "restart the background reflect".
+clear_cache = invalidate
+
+
+@router.get("/insights", response_model=InsightsResponse)
+async def get_insights() -> InsightsResponse:
+    facts = _compute_facts()
+    return InsightsResponse(
+        patterns=[InsightPattern(**p) for p in facts["patterns"]],
+        recurring=[
+            RecurringInsight(service=r["service"], title=r["title"], recurrence=Recurrence(**r["recurrence"]))
+            for r in facts["recurring"]
+        ],
+        open_permanent_fixes=[OpenPermanentFix(**f) for f in facts["open_permanent_fixes"]],
+        team_knowledge=[TeamKnowledge(**t) for t in facts["team_knowledge"]],
+        fix_speed_comparison=FixSpeedComparison(**facts["fix_speed_comparison"]),
+        reflect_summary=_reflect_summary,
+        reflect_status=_reflect_status,
     )
-    _cache = response
-    return response

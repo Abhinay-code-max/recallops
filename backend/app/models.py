@@ -271,7 +271,8 @@ class InsightsResponse(BaseModel):
     open_permanent_fixes: list[OpenPermanentFix]
     team_knowledge: list[TeamKnowledge]
     fix_speed_comparison: FixSpeedComparison
-    reflect_summary: str
+    reflect_summary: str | None
+    reflect_status: Literal["ready", "pending", "failed"]
 
 
 # --- POST /chat -------------------------------------------------------------------

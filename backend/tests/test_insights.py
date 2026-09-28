@@ -1,3 +1,6 @@
+import asyncio
+import time
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -13,6 +16,15 @@ def _reset_state():
     yield
     incidents.reset_live_state()
     insights.clear_cache()
+
+
+def _poll_until_not_pending(client: TestClient, timeout_s: float = 60.0) -> dict:
+    deadline = time.time() + timeout_s
+    body = client.get("/insights").json()
+    while body["reflect_status"] == "pending" and time.time() < deadline:
+        time.sleep(1)
+        body = client.get("/insights").json()
+    return body
 
 
 def test_deterministic_facts_are_pure_and_offline() -> None:
@@ -35,17 +47,45 @@ def test_deterministic_facts_are_pure_and_offline() -> None:
     assert fix_speed["first_fix_rollback_avg_min"] is not None
 
 
+def test_insights_responds_fast_even_while_reflect_is_pending(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Prompt 4b item 1: GET /insights must respond in well under 1s even while
+    reflect() is slow -- entirely offline, via a mocked reflect that sleeps."""
+
+    async def _slow_reflect(*args, **kwargs):
+        await asyncio.sleep(5)
+        return "should never be awaited by the route itself"
+
+    monkeypatch.setattr(insights.memory, "reflect", _slow_reflect)
+
+    with TestClient(app) as client:
+        insights.invalidate()  # starts the background task with the slow mock
+        t0 = time.time()
+        response = client.get("/insights")
+        elapsed = time.time() - t0
+
+        assert response.status_code == 200
+        assert elapsed < 1.0
+        body = response.json()
+        assert body["reflect_status"] in ("pending", "ready", "failed")
+        assert len(body["patterns"]) >= 10  # deterministic facts are present immediately
+
+
 @pytest.mark.live
-def test_get_insights_shape_and_cache() -> None:
+def test_get_insights_shape_reflect_eventually_ready() -> None:
     with TestClient(app) as client:
         client.post("/reset")
         client.post("/seed")
 
-        first = client.get("/insights")
-        assert first.status_code == 200
-        body = first.json()
+        immediate = client.get("/insights")
+        assert immediate.status_code == 200
+        immediate_body = immediate.json()
+        assert immediate_body["reflect_status"] in ("pending", "ready")
+        assert len(immediate_body["patterns"]) >= 10  # present even before reflect finishes
 
-        assert len(body["patterns"]) >= 10
+        body = _poll_until_not_pending(client)
+        assert body["reflect_status"] == "ready"
+        assert isinstance(body["reflect_summary"], str) and body["reflect_summary"]
+
         assert any(r["recurrence"]["occurrence_number"] >= 2 for r in body["recurring"])
         assert body["open_permanent_fixes"] == [
             {
@@ -54,16 +94,14 @@ def test_get_insights_shape_and_cache() -> None:
                 "message": body["open_permanent_fixes"][0]["message"],
             }
         ]
-        assert isinstance(body["reflect_summary"], str) and body["reflect_summary"]
-        # numbers must come from the deterministic fields, never parsed from reflect_summary
         assert body["fix_speed_comparison"]["sample_size"] > 0
 
         second = client.get("/insights").json()
-        assert second == body  # cached, identical
+        assert second == body  # cached, identical while nothing has changed
 
 
 @pytest.mark.live
-def test_insights_cache_invalidated_by_feedback_and_reset() -> None:
+def test_insights_deterministic_fields_change_on_feedback_and_reset() -> None:
     with TestClient(app) as client:
         client.post("/reset")
         client.post("/seed")
@@ -79,7 +117,8 @@ def test_insights_cache_invalidated_by_feedback_and_reset() -> None:
         before = client.get("/insights").json()
         client.post("/feedback", json={"incident_id": incident_id, "fix_type": "increase_postgres_pool_size", "outcome": "worked"})
         after_feedback = client.get("/insights").json()
-        assert after_feedback != before  # cache was invalidated, recomputed with the new feedback
+        assert after_feedback["patterns"] != before["patterns"]  # the new live incident joined its pattern group
+        assert after_feedback["reflect_status"] == "pending"  # invalidated, restarted
 
         client.post("/reset")
         after_reset = client.get("/insights").json()
