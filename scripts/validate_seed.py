@@ -152,6 +152,70 @@ def main() -> int:
     check(payments_rollback_failures >= 2, f"expected >=2 failed payments-api rollbacks, found {payments_rollback_failures}")
     check(len(permanent_fix_open_ids) == 1, f"expected exactly 1 incident with permanent_fix_open=true, found {permanent_fix_open_ids}")
 
+    # --- fix ranking formula sanity check (spec section 5) ---------------------
+    # score = similarity * (worked + 0.5*partial + 1) / (attempts + 2) - 0.3 * recent_failures
+    def score_fix(worked, partial, failed, recent_failures, similarity=1.0):
+        attempts = worked + partial + failed
+        return similarity * (worked + 0.5 * partial + 1) / (attempts + 2) - 0.3 * recent_failures
+
+    pool_fix_counts = {}
+    for inc in incidents:
+        if inc["service"] == "payments-api" and "pool-exhaustion-friday-deploy" in inc.get("pattern_tags", []):
+            for fa in inc["fix_attempts"]:
+                counts = pool_fix_counts.setdefault(fa["fix_type"], {"worked": 0, "partial": 0, "failed": 0})
+                counts[fa["outcome"]] += 1
+
+    expected_pool_fix_counts = {
+        "increase_postgres_pool_size": {"worked": 3, "partial": 0, "failed": 0},
+        "kill_idle_db_connections": {"worked": 1, "partial": 1, "failed": 0},
+        "restart_payments_pods": {"worked": 0, "partial": 1, "failed": 0},
+        "rollback_to_previous_deploy": {"worked": 0, "partial": 0, "failed": 2},
+    }
+    for fix_type, expected_counts in expected_pool_fix_counts.items():
+        check(
+            pool_fix_counts.get(fix_type) == expected_counts,
+            f"{fix_type} counts changed: expected {expected_counts}, got {pool_fix_counts.get(fix_type)}",
+        )
+
+    # recent_failures: count of failed attempts on record for that fix_type. All 4 pool
+    # exhaustion incidents fall within the ~4-month seed window, so every recorded failure
+    # counts as "recent" for this check -- there's no separate decay/lookback window yet.
+    scores = {
+        fix_type: score_fix(c["worked"], c["partial"], c["failed"], recent_failures=c["failed"])
+        for fix_type, c in pool_fix_counts.items()
+    }
+
+    print("\nFix ranking scores (equal similarity=1.0) for payments-api pool exhaustion:")
+    for fix_type, s in sorted(scores.items(), key=lambda kv: -kv[1]):
+        print(f"   {fix_type}: {s:.3f}  (counts={pool_fix_counts[fix_type]})")
+
+    ranked = sorted(scores, key=lambda k: -scores[k])
+    expected_rank_order = [
+        "increase_postgres_pool_size",
+        "kill_idle_db_connections",
+        "restart_payments_pods",
+        "rollback_to_previous_deploy",
+    ]
+    check(ranked == expected_rank_order, f"fix ranking order is {ranked}, expected {expected_rank_order}")
+
+    # one extra failure on kill_idle_db_connections should drop it below restart_payments_pods
+    bumped_failed = pool_fix_counts["kill_idle_db_connections"]["failed"] + 1
+    bumped_score = score_fix(
+        pool_fix_counts["kill_idle_db_connections"]["worked"],
+        pool_fix_counts["kill_idle_db_connections"]["partial"],
+        bumped_failed,
+        recent_failures=bumped_failed,
+    )
+    print(
+        f"   kill_idle_db_connections +1 failure -> {bumped_score:.3f} "
+        f"(restart_payments_pods stays at {scores['restart_payments_pods']:.3f})"
+    )
+    check(
+        bumped_score < scores["restart_payments_pods"],
+        f"kill_idle_db_connections with one extra failure ({bumped_score:.3f}) did not drop "
+        f"below restart_payments_pods ({scores['restart_payments_pods']:.3f})",
+    )
+
     # --- seed_team.json -------------------------------------------------------
     check(len(team) == 7, f"expected 7 engineers, got {len(team)}")
     names = [e["name"] for e in team]

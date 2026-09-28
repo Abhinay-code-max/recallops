@@ -42,9 +42,16 @@
       {
         "fix_type": "rollback_to_previous_deploy",
         "outcome": "failed",
-        "minutes_to_effect": 25,
+        "minutes_to_effect": 14,
         "resolver": "Priya Nair",
         "notes": "rolled back to v2.2.9; pool exhaustion persisted, sessions already leaked before rollback took effect"
+      },
+      {
+        "fix_type": "restart_payments_pods",
+        "outcome": "partial",
+        "minutes_to_effect": 11,
+        "resolver": "Priya Nair",
+        "notes": "rolling restart freed connections briefly, but the pool refilled within minutes as new checkout traffic reopened leaking sessions"
       },
       {
         "fix_type": "increase_postgres_pool_size",
@@ -54,7 +61,7 @@
         "notes": "raised max pool size from 20 to 60 and force-closed stale sessions"
       }
     ],
-    "resolution": "Pool size increase (20 -> 60) resolved the outage; the rollback was reverted afterward.",
+    "resolution": "Pool size increase (20 -> 60) resolved the outage after rollback and a pod restart both failed to hold.",
     "resolver": "Priya Nair",
     "postmortem": "Root cause (unreleased DB sessions on retry timeout in order-confirmation) is not yet fixed in code; pool resize is a workaround. Action item: add a session timeout and explicit release in order-confirmation retries -- not yet implemented.",
     "pattern_tags": [
@@ -62,7 +69,7 @@
     ],
     "permanent_fix_open": false,
     "total_minutes_to_resolve": 34,
-    "text": "Date: 2026-05-15T14:32:10Z | INC-002 | payments-api | SEV1\nTitle: Postgres connection pool exhaustion after v2.3.0 Friday deploy\nError signature: postgres_pool_exhaustion\nSymptoms: payments-api p99 latency above 4.8s and checkout error rate above 23% starting ~12 minutes after the v2.3.0 Friday deploy; new checkouts failing with DB connection errors.\nRoot cause: The v2.3.0 deploy's new order-confirmation retry path opens a DB session per retry without releasing it on timeout, exhausting the 20-connection Postgres pool within minutes of Friday peak traffic.\nLog: 2026-05-15T14:32:10Z ERROR payments-api [pool-2] org.postgresql.util.PSQLException: FATAL: remaining connection slots are reserved for non-replication superuser connections\np99_latency=4820ms error_rate=23.4% deploy=v2.3.0 (12 min ago)\nFixes tried: 1) rollback_to_previous_deploy -> failed (Priya Nair, 25 min, rolled back to v2.2.9; pool exhaustion persisted, sessions already leaked before rollback took effect); 2) increase_postgres_pool_size -> worked (Priya Nair, 9 min, raised max pool size from 20 to 60 and force-closed stale sessions).\nResolver: Priya Nair.\nTime to resolve: 34 min.\nPostmortem: Root cause (unreleased DB sessions on retry timeout in order-confirmation) is not yet fixed in code; pool resize is a workaround. Action item: add a session timeout and explicit release in order-confirmation retries -- not yet implemented."
+    "text": "Date: 2026-05-15T14:32:10Z | INC-002 | payments-api | SEV1\nTitle: Postgres connection pool exhaustion after v2.3.0 Friday deploy\nError signature: postgres_pool_exhaustion\nSymptoms: payments-api p99 latency above 4.8s and checkout error rate above 23% starting ~12 minutes after the v2.3.0 Friday deploy; new checkouts failing with DB connection errors.\nRoot cause: The v2.3.0 deploy's new order-confirmation retry path opens a DB session per retry without releasing it on timeout, exhausting the 20-connection Postgres pool within minutes of Friday peak traffic.\nLog: 2026-05-15T14:32:10Z ERROR payments-api [pool-2] org.postgresql.util.PSQLException: FATAL: remaining connection slots are reserved for non-replication superuser connections\np99_latency=4820ms error_rate=23.4% deploy=v2.3.0 (12 min ago)\nFixes tried: 1) rollback_to_previous_deploy -> failed (Priya Nair, 14 min, rolled back to v2.2.9; pool exhaustion persisted, sessions already leaked before rollback took effect); 2) restart_payments_pods -> partial (Priya Nair, 11 min, rolling restart freed connections briefly, but the pool refilled within minutes as new checkout traffic reopened leaking sessions); 3) increase_postgres_pool_size -> worked (Priya Nair, 9 min, raised max pool size from 20 to 60 and force-closed stale sessions).\nResolver: Priya Nair.\nTime to resolve: 34 min.\nPostmortem: Root cause (unreleased DB sessions on retry timeout in order-confirmation) is not yet fixed in code; pool resize is a workaround. Action item: add a session timeout and explicit release in order-confirmation retries -- not yet implemented."
   },
   {
     "incident_id": "INC-003",
@@ -272,14 +279,14 @@
     "root_cause": "Same order-confirmation retry session leak as INC-002 (still unfixed in code), triggered again by Friday deploy traffic.",
     "fix_attempts": [
       {
-        "fix_type": "increase_postgres_pool_size",
+        "fix_type": "kill_idle_db_connections",
         "outcome": "worked",
         "minutes_to_effect": 7,
         "resolver": "Priya Nair",
-        "notes": "went straight to the pool resize this time -- team learned from INC-002 that rollback doesn't help"
+        "notes": "killed idle Postgres connections via pg_terminate_backend instead of resizing the pool -- recovered just as fast, no rollback attempted"
       }
     ],
-    "resolution": "Pool size increase resolved the outage in 7 minutes; no rollback attempted.",
+    "resolution": "Killing idle DB connections resolved the outage in 7 minutes; no rollback attempted.",
     "resolver": "Priya Nair",
     "postmortem": "Second occurrence of the same pattern. Escalating priority on the order-confirmation session-leak fix.",
     "pattern_tags": [
@@ -287,7 +294,7 @@
     ],
     "permanent_fix_open": false,
     "total_minutes_to_resolve": 7,
-    "text": "Date: 2026-06-19T15:10:47Z | INC-009 | payments-api | SEV1\nTitle: Postgres connection pool exhaustion recurs after v2.3.1 Friday deploy\nError signature: postgres_pool_exhaustion\nSymptoms: Same signature as INC-002: p99 latency above 4.6s and checkout errors above 20% about 15 minutes after the v2.3.1 Friday deploy.\nRoot cause: Same order-confirmation retry session leak as INC-002 (still unfixed in code), triggered again by Friday deploy traffic.\nLog: 2026-06-19T15:10:47Z ERROR payments-api [pool-2] org.postgresql.util.PSQLException: FATAL: remaining connection slots are reserved for non-replication superuser connections\np99_latency=4650ms error_rate=21.8% deploy=v2.3.1 (15 min ago)\nFixes tried: 1) increase_postgres_pool_size -> worked (Priya Nair, 7 min, went straight to the pool resize this time -- team learned from INC-002 that rollback doesn't help).\nResolver: Priya Nair.\nTime to resolve: 7 min.\nPostmortem: Second occurrence of the same pattern. Escalating priority on the order-confirmation session-leak fix."
+    "text": "Date: 2026-06-19T15:10:47Z | INC-009 | payments-api | SEV1\nTitle: Postgres connection pool exhaustion recurs after v2.3.1 Friday deploy\nError signature: postgres_pool_exhaustion\nSymptoms: Same signature as INC-002: p99 latency above 4.6s and checkout errors above 20% about 15 minutes after the v2.3.1 Friday deploy.\nRoot cause: Same order-confirmation retry session leak as INC-002 (still unfixed in code), triggered again by Friday deploy traffic.\nLog: 2026-06-19T15:10:47Z ERROR payments-api [pool-2] org.postgresql.util.PSQLException: FATAL: remaining connection slots are reserved for non-replication superuser connections\np99_latency=4650ms error_rate=21.8% deploy=v2.3.1 (15 min ago)\nFixes tried: 1) kill_idle_db_connections -> worked (Priya Nair, 7 min, killed idle Postgres connections via pg_terminate_backend instead of resizing the pool -- recovered just as fast, no rollback attempted).\nResolver: Priya Nair.\nTime to resolve: 7 min.\nPostmortem: Second occurrence of the same pattern. Escalating priority on the order-confirmation session-leak fix."
   },
   {
     "incident_id": "INC-010",
@@ -513,9 +520,16 @@
       {
         "fix_type": "rollback_to_previous_deploy",
         "outcome": "failed",
-        "minutes_to_effect": 19,
+        "minutes_to_effect": 11,
         "resolver": "David Kim",
         "notes": "on-call engineer unfamiliar with INC-002/INC-009 history attempted a rollback to v2.3.1; pool exhaustion persisted as before"
+      },
+      {
+        "fix_type": "kill_idle_db_connections",
+        "outcome": "partial",
+        "minutes_to_effect": 8,
+        "resolver": "David Kim",
+        "notes": "killed idle Postgres connections via pg_terminate_backend; freed the pool briefly but new leaked sessions refilled it within minutes"
       },
       {
         "fix_type": "increase_postgres_pool_size",
@@ -525,7 +539,7 @@
         "notes": "paged in; resized pool from 20 to 80 given repeated recurrence"
       }
     ],
-    "resolution": "Pool resize resolved the outage; rollback failed for the second time on this pattern.",
+    "resolution": "Pool resize resolved the outage; rollback failed for the second time on this pattern, and killing idle connections only bought a few minutes.",
     "resolver": "Priya Nair",
     "postmortem": "Third occurrence. The order-confirmation session-leak fix from INC-002's postmortem is still not implemented; escalate to a P1 tech-debt item.",
     "pattern_tags": [
@@ -533,7 +547,7 @@
     ],
     "permanent_fix_open": false,
     "total_minutes_to_resolve": 27,
-    "text": "Date: 2026-07-24T14:48:51Z | INC-017 | payments-api | SEV1\nTitle: Postgres connection pool exhaustion recurs after v2.4.0 Friday deploy\nError signature: postgres_pool_exhaustion\nSymptoms: Same signature as INC-002/INC-009: p99 latency above 4.7s and checkout errors above 22% about 10 minutes after the v2.4.0 Friday deploy.\nRoot cause: Same unresolved order-confirmation session leak, now triggered a third time by the v2.4.0 Friday deploy.\nLog: 2026-07-24T14:48:51Z ERROR payments-api [pool-2] org.postgresql.util.PSQLException: FATAL: remaining connection slots are reserved for non-replication superuser connections\np99_latency=4710ms error_rate=22.6% deploy=v2.4.0 (10 min ago)\nFixes tried: 1) rollback_to_previous_deploy -> failed (David Kim, 19 min, on-call engineer unfamiliar with INC-002/INC-009 history attempted a rollback to v2.3.1; pool exhaustion persisted as before); 2) increase_postgres_pool_size -> worked (Priya Nair, 8 min, paged in; resized pool from 20 to 80 given repeated recurrence).\nResolver: Priya Nair.\nTime to resolve: 27 min.\nPostmortem: Third occurrence. The order-confirmation session-leak fix from INC-002's postmortem is still not implemented; escalate to a P1 tech-debt item."
+    "text": "Date: 2026-07-24T14:48:51Z | INC-017 | payments-api | SEV1\nTitle: Postgres connection pool exhaustion recurs after v2.4.0 Friday deploy\nError signature: postgres_pool_exhaustion\nSymptoms: Same signature as INC-002/INC-009: p99 latency above 4.7s and checkout errors above 22% about 10 minutes after the v2.4.0 Friday deploy.\nRoot cause: Same unresolved order-confirmation session leak, now triggered a third time by the v2.4.0 Friday deploy.\nLog: 2026-07-24T14:48:51Z ERROR payments-api [pool-2] org.postgresql.util.PSQLException: FATAL: remaining connection slots are reserved for non-replication superuser connections\np99_latency=4710ms error_rate=22.6% deploy=v2.4.0 (10 min ago)\nFixes tried: 1) rollback_to_previous_deploy -> failed (David Kim, 11 min, on-call engineer unfamiliar with INC-002/INC-009 history attempted a rollback to v2.3.1; pool exhaustion persisted as before); 2) kill_idle_db_connections -> partial (David Kim, 8 min, killed idle Postgres connections via pg_terminate_backend; freed the pool briefly but new leaked sessions refilled it within minutes); 3) increase_postgres_pool_size -> worked (Priya Nair, 8 min, paged in; resized pool from 20 to 80 given repeated recurrence).\nResolver: Priya Nair.\nTime to resolve: 27 min.\nPostmortem: Third occurrence. The order-confirmation session-leak fix from INC-002's postmortem is still not implemented; escalate to a P1 tech-debt item."
   },
   {
     "incident_id": "INC-018",
