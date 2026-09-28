@@ -1,7 +1,8 @@
-"""Seeds, then for each demo alert recalls against incidents+recallops-live and prints
-the top 3 incident IDs next to expected_incident_ids, per-call latency, seed duration,
-and reset duration. Also confirms no leftover "smoke-verify-*" bank remains (Step A used
-a throwaway bank of that name pattern) and prints the backend venv path.
+"""Seeds, then for each demo alert recalls the top 8 (incidents + recallops-live
+merged), prints rank/incident_id/relevance with expected incidents marked '*', and
+reports recall@8 per alert. Exits non-zero if any expected incident is missing from
+its alert's top 8. Also prints per-bank seeded item counts, reset duration, a
+leftover-smoke-bank check, and the venv python path.
 
 Usage: backend/.venv/Scripts/python scripts/check_recall.py
 """
@@ -21,40 +22,75 @@ load_dotenv(REPO_ROOT / ".env")
 from app import memory, seeding  # noqa: E402
 
 DATA_DIR = REPO_ROOT / "backend" / "data"
+TOP_N = 8
 
 
 def _alert_query(alert: dict) -> str:
     return f"{alert['title']}. {alert['symptoms']} {alert['error_message']}"
 
 
+async def _recall_top(query: str):
+    outcome = await memory.recall_merged([memory.BANK_INCIDENTS, memory.BANK_LIVE], query)
+    return outcome, outcome.hits[:TOP_N]
+
+
+def _print_ranked(top: list, expected: set[str]) -> None:
+    for rank, hit in enumerate(top, start=1):
+        mark = "*" if hit.incident_id in expected else " "
+        relevance = f"{hit.relevance:.3f}" if hit.relevance is not None else "?"
+        print(f"    {rank}. {mark} {hit.incident_id}  relevance={relevance}")
+
+
 async def main() -> int:
     print(f"venv python: {sys.executable}")
 
+    incidents = json.loads((DATA_DIR / "seed_incidents.json").read_text(encoding="utf-8"))
+    team = json.loads((DATA_DIR / "seed_team.json").read_text(encoding="utf-8"))
+    fix_attempts_count = sum(len(i["fix_attempts"]) for i in incidents)
+    print("\n--- seeded items per bank (explains the 60) ---")
+    print(f"  {memory.BANK_INCIDENTS}: {len(incidents)}")
+    print(f"  {memory.BANK_FIX_OUTCOMES}: {fix_attempts_count}")
+    print(f"  {memory.BANK_TEAM}: {len(team)}")
+    print(f"  {memory.BANK_BASELINE}: 0 (always empty)")
+    print(f"  {memory.BANK_LIVE}: 0 (nothing retains here yet -- feedback/chat/postmortem land in a later prompt)")
+    print(f"  total seeded: {len(incidents) + fix_attempts_count + len(team)}")
+
     print("\n--- seed ---")
-    t0 = time.time()
     seed_result = await seeding.run_seed()
-    seed_wall = time.time() - t0
-    print(f"seeded={seed_result.seeded} failed={seed_result.failed} duration_s={seed_result.duration_s:.2f} (wall={seed_wall:.2f})")
+    print(f"seeded={seed_result.seeded} failed={seed_result.failed} duration_s={seed_result.duration_s:.2f}")
 
     demo_alerts = json.loads((DATA_DIR / "demo_alerts.json").read_text(encoding="utf-8"))
 
-    print("\n--- recall per demo alert (incidents + recallops-live merged) ---")
-    all_ok = True
+    print("\n--- recall top 8 per demo alert (incidents + recallops-live merged) ---")
+    overall_pass = True
+    recall_at_8_summary: list[tuple[str, float]] = []
+
     for alert in demo_alerts:
+        expected = set(alert["expected_incident_ids"])
         query = _alert_query(alert)
         t0 = time.time()
-        outcome = await memory.recall_merged([memory.BANK_INCIDENTS, memory.BANK_LIVE], query)
+        outcome, top = await _recall_top(query)
         elapsed = time.time() - t0
-        top3 = [h.incident_id for h in outcome.hits[:3]]
-        expected = alert["expected_incident_ids"]
-        hit_expected = bool(set(top3) & set(expected))
-        all_ok = all_ok and hit_expected
+
+        found = {h.incident_id for h in top} & expected
+        recall_at_8 = len(found) / len(expected) if expected else 1.0
+        recall_at_8_summary.append((alert["alert_id"], recall_at_8))
+
+        print(f"\n{alert['alert_id']} ({alert['target_capability']})  query={query!r}")
+        _print_ranked(top, expected)
         print(
-            f"{alert['alert_id']} ({alert['target_capability']}): "
-            f"top3={top3}  expected={expected}  "
-            f"{'OK' if hit_expected else 'MISS'}  "
+            f"    recall@8: {len(found)}/{len(expected)} = {recall_at_8:.2f}  "
             f"latency={elapsed:.2f}s degraded={outcome.degraded}"
         )
+
+        missing = expected - found
+        if missing:
+            overall_pass = False
+            print(f"    MISSING from top {TOP_N}: {sorted(missing)}")
+
+    print("\n--- recall@8 summary ---")
+    for alert_id, r8 in recall_at_8_summary:
+        print(f"  {alert_id}: {r8:.2f}")
 
     print("\n--- reset ---")
     reset_duration = await seeding.run_reset()
@@ -71,8 +107,8 @@ async def main() -> int:
 
     await client.aclose()
 
-    print(f"\n--- summary: all demo alerts recalled an expected incident: {all_ok} ---")
-    return 0 if all_ok else 1
+    print(f"\n--- summary: every alert's expected incidents all landed in the top {TOP_N}: {overall_pass} ---")
+    return 0 if overall_pass else 1
 
 
 if __name__ == "__main__":
