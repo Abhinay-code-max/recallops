@@ -74,7 +74,7 @@ def _build_prompt(incident: dict[str, Any], evidence: list[dict[str, Any]]) -> l
     return [{"role": "system", "content": system}, {"role": "user", "content": user}]
 
 
-def _template_sections(incident: dict[str, Any]) -> dict[str, Any]:
+def template_sections(incident: dict[str, Any]) -> dict[str, Any]:
     memory_state = incident.get("memory_state", "no_match")
     service = incident.get("service") or "the service"
 
@@ -119,7 +119,11 @@ def _template_sections(incident: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-async def _generate_sections(incident: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
+async def generate_sections(incident: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
+    """Guarded BriefingSections generation: LLM grounded only in incident's
+    evidence_incident_ids, hallucination guard (regenerate once then template fallback).
+    Public: also used by POST /compare's with_memory path (routes/compare.py), which
+    needs the exact same guarantee without the SSE/caching wrapper below."""
     evidence_ids: list[str] = incident.get("evidence_incident_ids") or []
     allowed = set(evidence_ids)
 
@@ -139,14 +143,14 @@ async def _generate_sections(incident: dict[str, Any]) -> tuple[dict[str, Any], 
             if cited <= allowed:
                 return sections, sorted(cited)
 
-    return _template_sections(incident), []
+    return template_sections(incident), []
 
 
 async def _stream_events(incident_id: str) -> AsyncIterator[bytes]:
     cached = _briefing_cache.get(incident_id)
     if cached is None:
         incident = incidents.get_incident(incident_id)
-        sections, cited_incident_ids = await _generate_sections(incident)
+        sections, cited_incident_ids = await generate_sections(incident)
         cached = {"sections": sections, "cited_incident_ids": cited_incident_ids}
         _briefing_cache[incident_id] = cached
 

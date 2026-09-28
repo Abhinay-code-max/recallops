@@ -29,13 +29,28 @@ def alert_query(alert: dict[str, Any]) -> str:
 _live_incidents: dict[str, dict[str, Any]] = {}
 _live_feedback: list[dict[str, Any]] = []
 _next_number = 23
+_memories_stored_live = 0
 
 
 def reset_live_state() -> None:
-    global _next_number
+    global _next_number, _memories_stored_live
     _live_incidents.clear()
     _live_feedback.clear()
     _next_number = 23
+    _memories_stored_live = 0
+
+
+def record_memories_stored(count: int = 1) -> None:
+    """Counter for GET /metrics' counts.memories_stored -- incremented by every
+    successful live retain (alert/feedback/postmortem). memories_stored is never
+    derived from Hindsight itself (no list-all-memories call); this is the exact count
+    of retain calls this process has made since the last reset."""
+    global _memories_stored_live
+    _memories_stored_live += count
+
+
+def memories_stored_count() -> int:
+    return _memories_stored_live
 
 
 def next_incident_id() -> str:

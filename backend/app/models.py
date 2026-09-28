@@ -181,3 +181,105 @@ class IncidentDetail(IncidentSummary):
     root_cause: str | None = None
     fix_attempts: list[FixAttemptOut] = []
     postmortem: Postmortem | str | None = None
+
+
+# --- POST /compare -------------------------------------------------------------------
+class CompareRequest(BaseModel):
+    alert: Alert
+
+
+class WithoutMemory(BaseModel):
+    text: str
+
+
+class WithMemory(BaseModel):
+    sections: BriefingSections
+    evidence: list[Evidence]
+    ranked_fixes: list[RankedFixOut]
+    warnings: list[Warning]
+
+
+class CompareResponse(BaseModel):
+    without_memory: WithoutMemory
+    with_memory: WithMemory
+
+
+# --- GET /metrics -------------------------------------------------------------------
+class MetricsCounts(BaseModel):
+    incidents_handled: int
+    memories_stored: int
+
+
+class RealSeriesPoint(BaseModel):
+    n: int
+    incident_id: str
+    mttr_min: float
+    live: bool = False
+
+
+class SimulatedSeriesPoint(BaseModel):
+    n: int
+    mttr_min: float
+    accuracy: float
+
+
+class MetricsResponse(BaseModel):
+    counts: MetricsCounts
+    historical_avg_mttr_min: float
+    real_series: list[RealSeriesPoint]
+    simulated_series: list[SimulatedSeriesPoint]
+    simulated: Literal[True] = True
+
+
+# --- GET /insights -------------------------------------------------------------------
+class InsightPattern(BaseModel):
+    title: str
+    service: str
+    frequency: int
+    interval_days: float | None
+    incident_ids: list[str]
+
+
+class RecurringInsight(BaseModel):
+    service: str
+    title: str
+    recurrence: Recurrence
+
+
+class OpenPermanentFix(BaseModel):
+    incident_id: str
+    title: str
+    message: str
+
+
+class TeamKnowledge(BaseModel):
+    person: str
+    summary: str
+    incident_ids: list[str]
+
+
+class FixSpeedComparison(BaseModel):
+    first_fix_rollback_avg_min: float | None
+    first_fix_resize_avg_min: float | None
+    sample_size: int
+    note: str
+
+
+class InsightsResponse(BaseModel):
+    patterns: list[InsightPattern]
+    recurring: list[RecurringInsight]
+    open_permanent_fixes: list[OpenPermanentFix]
+    team_knowledge: list[TeamKnowledge]
+    fix_speed_comparison: FixSpeedComparison
+    reflect_summary: str
+
+
+# --- POST /chat -------------------------------------------------------------------
+class ChatRequest(BaseModel):
+    incident_id: str | None = None
+    question: str
+
+
+class ChatResponse(BaseModel):
+    answer: str
+    evidence: list[Evidence]

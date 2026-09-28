@@ -89,6 +89,7 @@ async def post_resolve(payload: ResolveRequest) -> ResolveResponse:
             tags=memory.seed_tags(incident.get("service") or "", incident.get("severity") or "SEV3", payload.incident_id),
         )
         memories_stored = getattr(result, "items_count", 1) or 1
+        incidents.record_memories_stored(memories_stored)
     except memory.MemoryUnavailableError:
         pass
 

@@ -140,7 +140,7 @@ def test_empty_memory_state_template_says_no_history() -> None:
         [],
         memory_state="empty",
     )
-    sections = briefing._template_sections(incidents.get_incident("INC-023"))
+    sections = briefing.template_sections(incidents.get_incident("INC-023"))
     assert "no incident history" in sections["root_cause"].lower() or "first incident" in sections["root_cause"].lower()
     assert sections["last_fixed_by"] is None
     # generic safe checklist: no incident-specific claims, just standard first-response steps
@@ -157,6 +157,6 @@ def test_no_match_template_says_no_similar_incident() -> None:
         [],
         memory_state="no_match",
     )
-    sections = briefing._template_sections(incidents.get_incident("INC-023"))
+    sections = briefing.template_sections(incidents.get_incident("INC-023"))
     assert "no similar" in sections["root_cause"].lower()
     assert sections["last_fixed_by"] is None
