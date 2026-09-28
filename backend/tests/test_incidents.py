@@ -158,3 +158,15 @@ def test_reset_clears_live_state() -> None:
     incidents.reset_live_state()
     assert incidents.get_incident("INC-023") is None
     assert incidents.next_incident_id() == "INC-023"
+
+
+def test_first_resolvable_skips_stale_unresolvable_ids() -> None:
+    # Regression: a recall hit can be a stale live incident_id left over from a
+    # previous process/session (Hindsight's delete_bank isn't guaranteed instantly
+    # consistent -- docs/HINDSIGHT_NOTES.md point 6) that no longer resolves locally
+    # after reset_live_state(). Scoring should skip it, not silently produce nothing.
+    assert incidents.first_resolvable(["INC-998", "INC-999", "INC-002"]) == "INC-002"
+
+
+def test_first_resolvable_returns_none_when_nothing_resolves() -> None:
+    assert incidents.first_resolvable(["INC-998", "INC-999"]) is None

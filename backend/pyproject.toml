@@ -1,3 +1,6 @@
 [tool.pytest.ini_options]
 pythonpath = ["."]
 asyncio_mode = "strict"
+markers = [
+    "live: hits real Hindsight Cloud and/or Groq (excluded by default; scripts/run_tests.ps1 -Live runs everything)",
+]

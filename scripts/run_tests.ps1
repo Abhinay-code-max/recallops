@@ -1,5 +1,10 @@
 # Runs the backend test suite with the backend venv's python.
-# Usage: powershell -File scripts/run_tests.ps1
+# Usage: powershell -File scripts/run_tests.ps1            (offline tests only, default)
+#        powershell -File scripts/run_tests.ps1 -Live       (everything, incl. real Hindsight/Groq calls)
+
+param(
+    [switch]$Live
+)
 
 $ErrorActionPreference = "Stop"
 
@@ -13,7 +18,11 @@ if (-not (Test-Path $venvPython)) {
 
 Push-Location (Join-Path $repoRoot "backend")
 try {
-    & $venvPython -m pytest -q
+    if ($Live) {
+        & $venvPython -m pytest -q
+    } else {
+        & $venvPython -m pytest -q -m "not live"
+    }
     exit $LASTEXITCODE
 } finally {
     Pop-Location

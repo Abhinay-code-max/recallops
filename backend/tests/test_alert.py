@@ -14,6 +14,8 @@ from app.main import app
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 
+pytestmark = pytest.mark.live
+
 
 @pytest.fixture(scope="module")
 def client():

@@ -133,18 +133,19 @@ async def post_alert(alert: Alert) -> AlertResponse:
     recurrence: Recurrence | None = None
 
     if memory_state == "matched" and hits:
-        top_incident_id = hits[0].incident_id
-        pool = incidents.pattern_pool(top_incident_id)
-        if ledger_data is not None:
-            counts = incidents.ledger_counts_for(top_incident_id, ledger_data)
-            ranked_fixes = scoring.rank_fixes(hits, pool, counts)
-        recurrence_data = incidents.compute_recurrence(pool)
-        if recurrence_data is not None:
-            recurrence = Recurrence(**recurrence_data)
-        team_hint_data = incidents.compute_team_hint(pool)
-        if team_hint_data is not None:
-            team_hint = TeamHint(**team_hint_data)
-        warnings = [WarningOut(**w) for w in incidents.build_warnings(ranked_fixes, pool, recurrence_data)]
+        top_incident_id = incidents.first_resolvable([h.incident_id for h in hits])
+        if top_incident_id is not None:
+            pool = incidents.pattern_pool(top_incident_id)
+            if ledger_data is not None:
+                counts = incidents.ledger_counts_for(top_incident_id, ledger_data)
+                ranked_fixes = scoring.rank_fixes(hits, pool, counts)
+            recurrence_data = incidents.compute_recurrence(pool)
+            if recurrence_data is not None:
+                recurrence = Recurrence(**recurrence_data)
+            team_hint_data = incidents.compute_team_hint(pool)
+            if team_hint_data is not None:
+                team_hint = TeamHint(**team_hint_data)
+            warnings = [WarningOut(**w) for w in incidents.build_warnings(ranked_fixes, pool, recurrence_data)]
 
     # --- store as a live incident (skip on dedupe -- it merges into the existing one) ---
     if not deduplicated:

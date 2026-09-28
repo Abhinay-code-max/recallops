@@ -191,6 +191,24 @@ def get_error_signature(incident_id: str) -> str | None:
     return live.get("error_signature") if live else None
 
 
+def first_resolvable(incident_ids: list[str]) -> str | None:
+    """First incident_id (in order) that resolves to a known pattern, seed or live.
+
+    Guards against a real, observed gap: Hindsight's delete_bank isn't guaranteed
+    instantly consistent (docs/HINDSIGHT_NOTES.md point 6), so a recall right after
+    POST /reset can surface a stale recallops-live memory from a *previous* process/
+    session that still outranks the real seed incidents by relevance -- but that
+    incident_id no longer exists in this process's freshly-reset local state. Using it
+    as the "top" incident for pattern_pool()/scoring would silently produce empty
+    ranked_fixes. Skipping to the next hit that actually resolves is more robust than
+    trying to make deletion instantaneous.
+    """
+    for incident_id in incident_ids:
+        if get_error_signature(incident_id) is not None:
+            return incident_id
+    return None
+
+
 def pattern_pool(top_incident_id: str) -> list[dict[str, Any]]:
     """Incidents (seed + live) sharing the top incident's error_signature, sorted by
     timestamp, each shaped {incident_id, timestamp, fix_attempts: [{fix_type, outcome,

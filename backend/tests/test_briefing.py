@@ -45,6 +45,7 @@ def _parse_sse(text: str) -> list[tuple[str, dict]]:
     return events
 
 
+@pytest.mark.live
 def test_matched_incident_streams_and_cites_only_evidence(client: TestClient) -> None:
     alert_response = client.post("/alert", json=_demo_alert_payload("DEMO-1")).json()
     incident_id = alert_response["incident_id"]
@@ -67,6 +68,7 @@ def test_matched_incident_streams_and_cites_only_evidence(client: TestClient) ->
     assert set(cited) <= evidence_ids  # hallucination guard: only cites recalled evidence
 
 
+@pytest.mark.live
 def test_caches_per_incident_id(client: TestClient) -> None:
     alert_response = client.post("/alert", json=_demo_alert_payload("DEMO-2")).json()
     incident_id = alert_response["incident_id"]
@@ -79,11 +81,13 @@ def test_caches_per_incident_id(client: TestClient) -> None:
     assert first_sections == second_sections
 
 
+@pytest.mark.live
 def test_unknown_incident_returns_404(client: TestClient) -> None:
     response = client.get("/incidents/INC-999/briefing/stream")
     assert response.status_code == 404
 
 
+@pytest.mark.live
 def test_llm_down_falls_back_to_template(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
     alert_response = client.post("/alert", json=_demo_alert_payload("DEMO-1")).json()
     incident_id = alert_response["incident_id"]
@@ -101,6 +105,7 @@ def test_llm_down_falls_back_to_template(client: TestClient, monkeypatch: pytest
     assert sections["root_cause"]  # still a usable briefing, not an empty/broken one
 
 
+@pytest.mark.live
 def test_hallucination_guard_falls_back_after_two_bad_citations(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
     alert_response = client.post("/alert", json=_demo_alert_payload("DEMO-1")).json()
     incident_id = alert_response["incident_id"]
