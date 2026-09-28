@@ -103,13 +103,25 @@ def main() -> int:
             prev_dt = dt
 
         # text field format
-        m = TEXT_PREFIX_RE.match(inc["text"])
+        text = inc["text"]
+        m = TEXT_PREFIX_RE.match(text)
         check(m is not None, f"{inc_id}: text field does not start with 'Date: ... | INC-xxx | service | SEVn'")
         if m:
             check(m.group("incident_id") == inc_id, f"{inc_id}: text prefix incident id mismatch ({m.group('incident_id')})")
             check(m.group("service") == inc["service"], f"{inc_id}: text prefix service mismatch")
             check(m.group("severity") == inc["severity"], f"{inc_id}: text prefix severity mismatch")
             check(m.group("date") == ts_raw, f"{inc_id}: text prefix date {m.group('date')} != timestamp {ts_raw}")
+
+        check(f"\nTitle: {inc['title']}\n" in text, f"{inc_id}: text is missing the Title line")
+        check(
+            f"\nError signature: {inc['error_signature']}\n" in text,
+            f"{inc_id}: text is missing the Error signature line",
+        )
+        check(
+            inc["log_snippet"] in text,
+            f"{inc_id}: text does not contain the raw (unmasked) log_snippet verbatim",
+        )
+        check(f"\nPostmortem: {inc['postmortem']}" in text, f"{inc_id}: text is missing the Postmortem line")
 
         fix_attempts = inc.get("fix_attempts", [])
         check(len(fix_attempts) >= 1, f"{inc_id}: has no fix_attempts")
