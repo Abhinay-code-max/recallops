@@ -11,6 +11,9 @@ import json
 import sys
 from pathlib import Path
 
+sys.stdout.reconfigure(encoding="utf-8")
+sys.stderr.reconfigure(encoding="utf-8")
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT / "backend"))
 
@@ -18,7 +21,7 @@ from dotenv import load_dotenv
 
 load_dotenv(REPO_ROOT / ".env")
 
-from app import incidents, memory, seeding  # noqa: E402
+from app import analysis, incidents, memory, seeding  # noqa: E402
 from app.scoring import normalize_similarity  # noqa: E402
 
 DATA_DIR = REPO_ROOT / "backend" / "data"
@@ -78,6 +81,12 @@ async def main() -> int:
     for v in normalized_values:
         assert 0.0 <= v <= 1.0, f"normalised similarity out of [0,1]: {v}"
     print(f"\nAll {len(normalized_values)} normalised similarity values are within [0, 1]: OK")
+
+    for title, symptoms, error_message in UNRELATED_ALERTS:
+        res = await analysis.analyze_alert({"title": title, "symptoms": symptoms, "error_message": error_message})
+        print(f"Unrelated alert '{title}': memory_state={res.memory_state} (threshold={analysis.NO_MATCH_THRESHOLD})")
+        assert res.memory_state == "no_match", f"Expected no_match for {title}, got {res.memory_state}"
+    print("All unrelated alerts evaluated to 'no_match': OK")
 
     await memory.get_client().aclose()
     return 0
