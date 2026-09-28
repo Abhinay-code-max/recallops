@@ -40,7 +40,7 @@
       "INC-017"
     ],
     "expected_worked_fix_type": "increase_postgres_pool_size",
-    "notes": "Recall's fix_attempts show rollback_to_previous_deploy failed on INC-002 and INC-017 (2 of 2 attempts) and increase_postgres_pool_size worked 4 of 4 times -- the agent should explicitly warn against rollback before it's tried."
+    "notes": "Recall's fix_attempts show rollback_to_previous_deploy failed on INC-002 and INC-017 (2 of 2 attempts) and increase_postgres_pool_size worked 3 of 3 times -- the agent should explicitly warn against rollback before it's tried."
   },
   {
     "alert_id": "DEMO-3",

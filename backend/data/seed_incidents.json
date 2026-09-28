@@ -629,10 +629,10 @@
         "outcome": "worked",
         "minutes_to_effect": 6,
         "resolver": "Rahul Mehta",
-        "notes": "manually scaled consumers from 6 to 10 immediately, skipping the slow autoscaler; lag drained in a third of the time it took during INC-006"
+        "notes": "manually scaled consumers from 6 to 10 immediately, skipping the slow autoscaler; lag drained in half the time it took during INC-006"
       }
     ],
-    "resolution": "Manual pre-scaling and a fast consumer scale-up drained the backlog in a third of the time it took during INC-006.",
+    "resolution": "Manual pre-scaling and a fast consumer scale-up drained the backlog in half the time it took during INC-006.",
     "resolver": "Rahul Mehta",
     "postmortem": "Autoscaler trigger threshold is still too conservative for flash-sale traffic; add a scheduled pre-scale for known sale windows.",
     "pattern_tags": [
@@ -640,7 +640,7 @@
     ],
     "permanent_fix_open": false,
     "total_minutes_to_resolve": 6,
-    "text": "Date: 2026-08-15T21:07:52Z | INC-020 | order-worker | SEV1\nTitle: Kafka consumer lag during Independence Day Mega Sale\nError signature: kafka_consumer_lag\nSymptoms: During the Independence Day Mega Sale, order-events consumer lag began climbing again within minutes of the flash sale start.\nRoot cause: Sale traffic again exceeded consumer throughput capacity, same as INC-006, but this time the team pre-scaled ahead of the event per the INC-006 postmortem action item -- lag still spiked briefly due to a delayed autoscaler trigger.\nLog: 2026-08-15T21:07:52Z WARN order-worker [kafka-consumer-group=order-processing] consumer lag detected partition=4 lag=15870 messages\nthroughput_msgs_sec=980 target_msgs_sec=1550 topic=order-events\nFixes tried: 1) scale_consumer_replicas -> worked (Rahul Mehta, 6 min, manually scaled consumers from 6 to 10 immediately, skipping the slow autoscaler; lag drained in a third of the time it took during INC-006).\nResolver: Rahul Mehta.\nTime to resolve: 6 min.\nPostmortem: Autoscaler trigger threshold is still too conservative for flash-sale traffic; add a scheduled pre-scale for known sale windows."
+    "text": "Date: 2026-08-15T21:07:52Z | INC-020 | order-worker | SEV1\nTitle: Kafka consumer lag during Independence Day Mega Sale\nError signature: kafka_consumer_lag\nSymptoms: During the Independence Day Mega Sale, order-events consumer lag began climbing again within minutes of the flash sale start.\nRoot cause: Sale traffic again exceeded consumer throughput capacity, same as INC-006, but this time the team pre-scaled ahead of the event per the INC-006 postmortem action item -- lag still spiked briefly due to a delayed autoscaler trigger.\nLog: 2026-08-15T21:07:52Z WARN order-worker [kafka-consumer-group=order-processing] consumer lag detected partition=4 lag=15870 messages\nthroughput_msgs_sec=980 target_msgs_sec=1550 topic=order-events\nFixes tried: 1) scale_consumer_replicas -> worked (Rahul Mehta, 6 min, manually scaled consumers from 6 to 10 immediately, skipping the slow autoscaler; lag drained in half the time it took during INC-006).\nResolver: Rahul Mehta.\nTime to resolve: 6 min.\nPostmortem: Autoscaler trigger threshold is still too conservative for flash-sale traffic; add a scheduled pre-scale for known sale windows."
   },
   {
     "incident_id": "INC-021",
