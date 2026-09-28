@@ -29,11 +29,13 @@ seed data):
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import re
 import time
 from dataclasses import dataclass, field
 from functools import lru_cache
+from pathlib import Path
 from typing import Any
 
 from hindsight_client import Hindsight
@@ -283,6 +285,36 @@ async def ping() -> tuple[str, float]:
         return "down", time.time() - t0
     elapsed = time.time() - t0
     return ("ok" if elapsed < 2.0 else "slow"), elapsed
+
+
+_DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+
+
+@lru_cache
+def _load_seed_incidents() -> tuple[dict[str, Any], ...]:
+    return tuple(json.loads((_DATA_DIR / "seed_incidents.json").read_text(encoding="utf-8")))
+
+
+def pattern_siblings(top_incident_id: str) -> list[dict[str, Any]]:
+    """Given the top recalled incident, return all OTHER incidents sharing its
+    error_signature, read from the structured seed data -- never from Hindsight (a
+    recall/reflect call has no reliable notion of "everything with this signature";
+    that's exactly the kind of exact count Hindsight is never used for -- see
+    backend/app/ledger.py).
+
+    Documented as "pattern siblings": for fix-count purposes only (e.g. scoring.py
+    widening its ledger.json lookup to every incident of the same pattern, not just the
+    ones recall happened to surface). Never merge these into an evidence list -- they
+    were not returned by recall, so citing one would violate the CLAUDE.md rule that
+    briefings may only cite incident IDs recall actually returned.
+    """
+    incidents = _load_seed_incidents()
+    by_id = {inc["incident_id"]: inc for inc in incidents}
+    top = by_id.get(top_incident_id)
+    if top is None:
+        return []
+    signature = top["error_signature"]
+    return [inc for inc in incidents if inc["incident_id"] != top_incident_id and inc["error_signature"] == signature]
 
 
 async def reflect(bank_id: str, query: str, *, budget: str = "low", context: str | None = None) -> str:
