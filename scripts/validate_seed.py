@@ -21,6 +21,8 @@ RANGE_END = datetime.date(2026, 9, 10)
 TEXT_PREFIX_RE = re.compile(
     r"^Date: (?P<date>\S+) \| (?P<incident_id>INC-\d{3}) \| (?P<service>[\w-]+) \| (?P<severity>SEV[1-3])\n"
 )
+FIXES_TRIED_LINE_RE = re.compile(r"\nFixes tried: (?P<body>.+?)\.\nResolver: ", re.DOTALL)
+FIX_ENTRY_RE = re.compile(r"\d+\) (?P<fix_type>\S+) -> (?P<outcome>\w+) \(")
 
 PATTERN_EXPECTED_COUNTS = {
     "pool-exhaustion-friday-deploy": 4,
@@ -125,6 +127,17 @@ def main() -> int:
 
         fix_attempts = inc.get("fix_attempts", [])
         check(len(fix_attempts) >= 1, f"{inc_id}: has no fix_attempts")
+
+        # "Fixes tried" in text must name/outcome-match fix_attempts exactly, in order.
+        fixes_line_match = FIXES_TRIED_LINE_RE.search(text)
+        check(fixes_line_match is not None, f"{inc_id}: text has no 'Fixes tried: ...\\nResolver:' section")
+        if fixes_line_match:
+            text_fixes = FIX_ENTRY_RE.findall(fixes_line_match.group("body"))
+            expected_fixes = [(fa["fix_type"], fa["outcome"]) for fa in fix_attempts]
+            check(
+                text_fixes == expected_fixes,
+                f"{inc_id}: text 'Fixes tried' entries {text_fixes} != fix_attempts {expected_fixes}",
+            )
         for fa in fix_attempts:
             check(fa["outcome"] in OUTCOMES, f"{inc_id}: unknown fix outcome {fa['outcome']!r}")
             all_outcomes.add(fa["outcome"])
