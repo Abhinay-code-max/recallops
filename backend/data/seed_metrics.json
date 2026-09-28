@@ -2,155 +2,243 @@
   {
     "incident_id": "INC-001",
     "sequence": 1,
-    "mttr_minutes": 47.0,
-    "suggestion_accuracy": 0.537,
-    "memories_stored": 3
+    "mttr_minutes": 22,
+    "memories_stored": 3,
+    "simulated_with_recallops": {
+      "simulated": true,
+      "mttr_minutes": 19.2,
+      "suggestion_accuracy": 0.537
+    }
   },
   {
     "incident_id": "INC-002",
     "sequence": 2,
-    "mttr_minutes": 47.4,
-    "suggestion_accuracy": 0.556,
-    "memories_stored": 6
+    "mttr_minutes": 34,
+    "memories_stored": 6,
+    "simulated_with_recallops": {
+      "simulated": true,
+      "mttr_minutes": 19.9,
+      "suggestion_accuracy": 0.556
+    }
   },
   {
     "incident_id": "INC-003",
     "sequence": 3,
-    "mttr_minutes": 42.8,
-    "suggestion_accuracy": 0.554,
-    "memories_stored": 9
+    "mttr_minutes": 25,
+    "memories_stored": 9,
+    "simulated_with_recallops": {
+      "simulated": true,
+      "mttr_minutes": 17.7,
+      "suggestion_accuracy": 0.554
+    }
   },
   {
     "incident_id": "INC-004",
     "sequence": 4,
-    "mttr_minutes": 39.5,
-    "suggestion_accuracy": 0.565,
-    "memories_stored": 12
+    "mttr_minutes": 20,
+    "memories_stored": 12,
+    "simulated_with_recallops": {
+      "simulated": true,
+      "mttr_minutes": 16.2,
+      "suggestion_accuracy": 0.565
+    }
   },
   {
     "incident_id": "INC-005",
     "sequence": 5,
-    "mttr_minutes": 40.8,
-    "suggestion_accuracy": 0.604,
-    "memories_stored": 15
+    "mttr_minutes": 13,
+    "memories_stored": 15,
+    "simulated_with_recallops": {
+      "simulated": true,
+      "mttr_minutes": 17.5,
+      "suggestion_accuracy": 0.604
+    }
   },
   {
     "incident_id": "INC-006",
     "sequence": 6,
-    "mttr_minutes": 39.7,
-    "suggestion_accuracy": 0.646,
-    "memories_stored": 18
+    "mttr_minutes": 30,
+    "memories_stored": 18,
+    "simulated_with_recallops": {
+      "simulated": true,
+      "mttr_minutes": 17.3,
+      "suggestion_accuracy": 0.646
+    }
   },
   {
     "incident_id": "INC-007",
     "sequence": 7,
-    "mttr_minutes": 34.6,
-    "suggestion_accuracy": 0.66,
-    "memories_stored": 21
+    "mttr_minutes": 16,
+    "memories_stored": 21,
+    "simulated_with_recallops": {
+      "simulated": true,
+      "mttr_minutes": 14.8,
+      "suggestion_accuracy": 0.66
+    }
   },
   {
     "incident_id": "INC-008",
     "sequence": 8,
-    "mttr_minutes": 33.0,
-    "suggestion_accuracy": 0.657,
-    "memories_stored": 24
+    "mttr_minutes": 25,
+    "memories_stored": 24,
+    "simulated_with_recallops": {
+      "simulated": true,
+      "mttr_minutes": 14.3,
+      "suggestion_accuracy": 0.657
+    }
   },
   {
     "incident_id": "INC-009",
     "sequence": 9,
-    "mttr_minutes": 34.4,
-    "suggestion_accuracy": 0.673,
-    "memories_stored": 27
+    "mttr_minutes": 7,
+    "memories_stored": 27,
+    "simulated_with_recallops": {
+      "simulated": true,
+      "mttr_minutes": 15.7,
+      "suggestion_accuracy": 0.673
+    }
   },
   {
     "incident_id": "INC-010",
     "sequence": 10,
-    "mttr_minutes": 31.6,
-    "suggestion_accuracy": 0.716,
-    "memories_stored": 30
+    "mttr_minutes": 19,
+    "memories_stored": 30,
+    "simulated_with_recallops": {
+      "simulated": true,
+      "mttr_minutes": 14.5,
+      "suggestion_accuracy": 0.716
+    }
   },
   {
     "incident_id": "INC-011",
     "sequence": 11,
-    "mttr_minutes": 26.8,
-    "suggestion_accuracy": 0.754,
-    "memories_stored": 33
+    "mttr_minutes": 28,
+    "memories_stored": 33,
+    "simulated_with_recallops": {
+      "simulated": true,
+      "mttr_minutes": 12.1,
+      "suggestion_accuracy": 0.754
+    }
   },
   {
     "incident_id": "INC-012",
     "sequence": 12,
-    "mttr_minutes": 26.8,
-    "suggestion_accuracy": 0.764,
-    "memories_stored": 36
+    "mttr_minutes": 30,
+    "memories_stored": 36,
+    "simulated_with_recallops": {
+      "simulated": true,
+      "mttr_minutes": 12.6,
+      "suggestion_accuracy": 0.764
+    }
   },
   {
     "incident_id": "INC-013",
     "sequence": 13,
-    "mttr_minutes": 27.5,
-    "suggestion_accuracy": 0.762,
-    "memories_stored": 39
+    "mttr_minutes": 11,
+    "memories_stored": 39,
+    "simulated_with_recallops": {
+      "simulated": true,
+      "mttr_minutes": 13.5,
+      "suggestion_accuracy": 0.762
+    }
   },
   {
     "incident_id": "INC-014",
     "sequence": 14,
-    "mttr_minutes": 23.2,
-    "suggestion_accuracy": 0.782,
-    "memories_stored": 42
+    "mttr_minutes": 4,
+    "memories_stored": 42,
+    "simulated_with_recallops": {
+      "simulated": true,
+      "mttr_minutes": 11.5,
+      "suggestion_accuracy": 0.782
+    }
   },
   {
     "incident_id": "INC-015",
     "sequence": 15,
-    "mttr_minutes": 19.5,
-    "suggestion_accuracy": 0.827,
-    "memories_stored": 45
+    "mttr_minutes": 18,
+    "memories_stored": 45,
+    "simulated_with_recallops": {
+      "simulated": true,
+      "mttr_minutes": 9.8,
+      "suggestion_accuracy": 0.827
+    }
   },
   {
     "incident_id": "INC-016",
     "sequence": 16,
-    "mttr_minutes": 20.6,
-    "suggestion_accuracy": 0.861,
-    "memories_stored": 48
+    "mttr_minutes": 20,
+    "memories_stored": 48,
+    "simulated_with_recallops": {
+      "simulated": true,
+      "mttr_minutes": 10.9,
+      "suggestion_accuracy": 0.861
+    }
   },
   {
     "incident_id": "INC-017",
     "sequence": 17,
-    "mttr_minutes": 20.0,
-    "suggestion_accuracy": 0.867,
-    "memories_stored": 51
+    "mttr_minutes": 27,
+    "memories_stored": 51,
+    "simulated_with_recallops": {
+      "simulated": true,
+      "mttr_minutes": 11.0,
+      "suggestion_accuracy": 0.867
+    }
   },
   {
     "incident_id": "INC-018",
     "sequence": 18,
-    "mttr_minutes": 14.9,
-    "suggestion_accuracy": 0.866,
-    "memories_stored": 54
+    "mttr_minutes": 24,
+    "memories_stored": 54,
+    "simulated_with_recallops": {
+      "simulated": true,
+      "mttr_minutes": 8.6,
+      "suggestion_accuracy": 0.866
+    }
   },
   {
     "incident_id": "INC-019",
     "sequence": 19,
-    "mttr_minutes": 12.8,
-    "suggestion_accuracy": 0.892,
-    "memories_stored": 57
+    "mttr_minutes": 28,
+    "memories_stored": 57,
+    "simulated_with_recallops": {
+      "simulated": true,
+      "mttr_minutes": 7.8,
+      "suggestion_accuracy": 0.892
+    }
   },
   {
     "incident_id": "INC-020",
     "sequence": 20,
-    "mttr_minutes": 14.3,
-    "suggestion_accuracy": 0.938,
-    "memories_stored": 60
+    "mttr_minutes": 6,
+    "memories_stored": 60,
+    "simulated_with_recallops": {
+      "simulated": true,
+      "mttr_minutes": 9.2,
+      "suggestion_accuracy": 0.938
+    }
   },
   {
     "incident_id": "INC-021",
     "sequence": 21,
-    "mttr_minutes": 12.0,
-    "suggestion_accuracy": 0.968,
-    "memories_stored": 63
+    "mttr_minutes": 6,
+    "memories_stored": 63,
+    "simulated_with_recallops": {
+      "simulated": true,
+      "mttr_minutes": 8.3,
+      "suggestion_accuracy": 0.968
+    }
   },
   {
     "incident_id": "INC-022",
     "sequence": 22,
-    "mttr_minutes": 7.0,
-    "suggestion_accuracy": 0.969,
-    "memories_stored": 66
+    "mttr_minutes": 9,
+    "memories_stored": 66,
+    "simulated_with_recallops": {
+      "simulated": true,
+      "mttr_minutes": 6,
+      "suggestion_accuracy": 0.969
+    }
   }
 ]

@@ -264,16 +264,50 @@ def main() -> int:
     metric_ids = [m["incident_id"] for m in metrics]
     check(metric_ids == ids, "seed_metrics incident_id order does not match seed_incidents order")
 
-    if len(metrics) >= 5:
-        first_avg = sum(m["mttr_minutes"] for m in metrics[:5]) / 5
-        last_avg = sum(m["mttr_minutes"] for m in metrics[-5:]) / 5
-        check(first_avg > last_avg, f"MTTR does not trend down: first-5 avg {first_avg} <= last-5 avg {last_avg}")
-        check(metrics[0]["mttr_minutes"] >= 40, f"first MTTR {metrics[0]['mttr_minutes']} is not close to the ~47 min spec target")
-        check(metrics[-1]["mttr_minutes"] <= 15, f"last MTTR {metrics[-1]['mttr_minutes']} is not close to the ~9 min spec target")
+    # mttr_minutes must be REAL: exactly each incident's total_minutes_to_resolve, never a
+    # fabricated number. The demo's "gets faster over time" chart data lives separately
+    # under simulated_with_recallops, explicitly flagged, so it can never be mistaken for
+    # real history.
+    for m, inc in zip(metrics, incidents):
+        check(
+            m["mttr_minutes"] == inc["total_minutes_to_resolve"],
+            f"{m['incident_id']}: seed_metrics mttr_minutes {m['mttr_minutes']} != "
+            f"seed_incidents total_minutes_to_resolve {inc['total_minutes_to_resolve']}",
+        )
+        sim = m.get("simulated_with_recallops")
+        check(bool(sim), f"{m['incident_id']}: missing simulated_with_recallops")
+        if sim:
+            check(sim.get("simulated") is True, f"{m['incident_id']}: simulated_with_recallops.simulated is not true")
+            check("mttr_minutes" in sim, f"{m['incident_id']}: simulated_with_recallops missing mttr_minutes")
+            check("suggestion_accuracy" in sim, f"{m['incident_id']}: simulated_with_recallops missing suggestion_accuracy")
 
-        first_acc = sum(m["suggestion_accuracy"] for m in metrics[:5]) / 5
-        last_acc = sum(m["suggestion_accuracy"] for m in metrics[-5:]) / 5
-        check(last_acc > first_acc, f"suggestion_accuracy does not trend up: first-5 avg {first_acc} >= last-5 avg {last_acc}")
+    if len(metrics) >= 5:
+        historical_avg_mttr = sum(inc["total_minutes_to_resolve"] for inc in incidents) / len(incidents)
+
+        sim_first_avg = sum(m["simulated_with_recallops"]["mttr_minutes"] for m in metrics[:5]) / 5
+        sim_last_avg = sum(m["simulated_with_recallops"]["mttr_minutes"] for m in metrics[-5:]) / 5
+        check(
+            sim_first_avg > sim_last_avg,
+            f"simulated_with_recallops MTTR does not trend down: first-5 avg {sim_first_avg} <= last-5 avg {sim_last_avg}",
+        )
+        first_sim_mttr = metrics[0]["simulated_with_recallops"]["mttr_minutes"]
+        check(
+            abs(first_sim_mttr - historical_avg_mttr) <= 5,
+            f"first simulated_with_recallops MTTR {first_sim_mttr} is not close to the historical "
+            f"average {historical_avg_mttr:.1f} (~19 min)",
+        )
+        check(
+            metrics[-1]["simulated_with_recallops"]["mttr_minutes"] <= 10,
+            f"last simulated_with_recallops MTTR {metrics[-1]['simulated_with_recallops']['mttr_minutes']} "
+            f"is not close to the ~7 min spec target",
+        )
+
+        first_acc = sum(m["simulated_with_recallops"]["suggestion_accuracy"] for m in metrics[:5]) / 5
+        last_acc = sum(m["simulated_with_recallops"]["suggestion_accuracy"] for m in metrics[-5:]) / 5
+        check(
+            last_acc > first_acc,
+            f"simulated_with_recallops suggestion_accuracy does not trend up: first-5 avg {first_acc} >= last-5 avg {last_acc}",
+        )
 
     # --- summary -------------------------------------------------------
     if failures:
@@ -289,7 +323,12 @@ def main() -> int:
     print(f" - permanent_fix_open: {permanent_fix_open_ids}")
     print(f" - {len(team)} engineers: {', '.join(names)}")
     print(f" - {len(demo_alerts)} demo alerts covering: {sorted(found_capabilities)}")
-    print(f" - MTTR trend: {metrics[0]['mttr_minutes']} -> {metrics[-1]['mttr_minutes']} min")
+    print(f" - real MTTR range: {metrics[0]['mttr_minutes']} .. {metrics[-1]['mttr_minutes']} min")
+    print(
+        f" - simulated_with_recallops MTTR trend: "
+        f"{metrics[0]['simulated_with_recallops']['mttr_minutes']} -> "
+        f"{metrics[-1]['simulated_with_recallops']['mttr_minutes']} min"
+    )
     return 0
 
 
