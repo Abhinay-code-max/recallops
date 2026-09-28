@@ -251,6 +251,8 @@ def main() -> int:
         f"demo_alerts target_capability values {found_capabilities} != {expected_capabilities}",
     )
 
+    incidents_by_id = {inc["incident_id"]: inc for inc in incidents}
+
     for alert in demo_alerts:
         expected_ids = alert.get("expected_incident_ids", [])
         check(bool(expected_ids), f"{alert['alert_id']}: no expected_incident_ids")
@@ -258,6 +260,24 @@ def main() -> int:
             check(eid in ids, f"{alert['alert_id']}: expected_incident_ids references unknown incident {eid}")
         check(alert["service"] in SERVICES, f"{alert['alert_id']}: unknown service {alert['service']!r}")
         check(alert["severity"] in SEVERITIES, f"{alert['alert_id']}: unknown severity {alert['severity']!r}")
+
+    demo5 = next(a for a in demo_alerts if a["alert_id"] == "DEMO-5")
+    check("fifth" not in demo5["title"].lower(), f"DEMO-5 title still mentions 'fifth': {demo5['title']!r}")
+
+    # DEMO-3/4/5 must paraphrase, not copy, the seed incidents' symptoms/log wording --
+    # otherwise recall could be "solved" by trivial exact-string matching.
+    for alert_id in ("DEMO-3", "DEMO-4", "DEMO-5"):
+        alert = next(a for a in demo_alerts if a["alert_id"] == alert_id)
+        for eid in alert["expected_incident_ids"]:
+            inc = incidents_by_id[eid]
+            check(
+                alert["symptoms"].strip() != inc["symptoms"].strip(),
+                f"{alert_id}: symptoms are copied verbatim from {eid}",
+            )
+            check(
+                alert["log_snippet"].strip() != inc["log_snippet"].strip(),
+                f"{alert_id}: log_snippet is copied verbatim from {eid}",
+            )
 
     # --- seed_metrics.json -------------------------------------------------------
     check(len(metrics) == len(incidents), f"seed_metrics has {len(metrics)} rows, expected {len(incidents)}")
