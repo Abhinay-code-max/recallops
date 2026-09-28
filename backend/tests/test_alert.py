@@ -9,6 +9,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app import incidents, ledger
+from app import memory as memory_module
 from app.main import app
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
@@ -104,6 +105,21 @@ def test_empty_memory_state_when_no_ledger(client: TestClient, monkeypatch: pyte
     body = response.json()
     assert body["memory_state"] == "empty"
     assert body["evidence"] == []
+    assert body["ranked_fixes"] == []
+
+
+def test_hindsight_down_returns_degraded_but_still_answers(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    async def _always_degraded(*args, **kwargs):
+        return memory_module.RecallOutcome(hits=[], degraded=True)
+
+    monkeypatch.setattr(memory_module, "recall_merged", _always_degraded)
+
+    response = client.post("/alert", json=_demo_alert_payload("DEMO-1"))
+    assert response.status_code == 200  # never a 500, even with Hindsight unavailable
+    body = response.json()
+    assert body["degraded"] is True
+    assert body["memory_state"] in ("no_match", "empty")  # no hits came back -> can't be "matched"
+    assert body["incident_id"]
     assert body["ranked_fixes"] == []
 
 
