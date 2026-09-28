@@ -63,7 +63,13 @@ def _parse_sse_block(block: str) -> tuple[str, dict]:
     return event, data
 
 
-def _consume_briefing(client: TestClient, incident_id: str, recalled_ids: set[str]) -> None:
+def _consume_briefing(
+    client: TestClient,
+    incident_id: str,
+    recalled_ids: set[str],
+    top_fix_type: str | None = None,
+    check_no_rollback: bool = False,
+) -> None:
     url = f"/incidents/{incident_id}/briefing/stream"
     t0 = time.time()
     first_token_time = None
@@ -92,8 +98,35 @@ def _consume_briefing(client: TestClient, incident_id: str, recalled_ids: set[st
     print(f"  sections: {json.dumps(sections, indent=2)}")
     print(f"  recalled evidence ids: {sorted(recalled_ids)}")
     print(f"  cited_incident_ids:    {sorted(cited)}")
+
+    # Hallucination guard
     assert cited <= recalled_ids, f"hallucination guard violated: cited {cited - recalled_ids} not in recalled set"
-    print(f"  cited subset of recalled: OK")
+    print("  cited subset of recalled: OK")
+
+    # 4c: cited must be non-empty for matched incidents
+    if recalled_ids:
+        assert len(cited) > 0, f"memory_state=matched but cited_incident_ids is empty for {incident_id}"
+        print(f"  cited non-empty (matched): OK")
+
+    # 4c: first_actions[0] must mention the top ranked fix type
+    if top_fix_type:
+        fa0 = (sections.get("first_actions") or [""])[0].lower()
+        top_words = set(top_fix_type.replace("_", " ").lower().split())
+        matched_words = [w for w in top_words if w in fa0]
+        assert matched_words, (
+            f"first_actions[0] does not mention top fix '{top_fix_type}': {sections['first_actions'][0]!r}"
+        )
+        print(f"  first_actions[0] mentions top fix '{top_fix_type}': OK")
+
+    # 4c: no first_action should mention rollback for incidents where rollback has failed
+    if check_no_rollback:
+        for action in sections.get("first_actions", []):
+            action_lower = action.lower()
+            assert "rollback" not in action_lower and "roll back" not in action_lower, (
+                f"first_action mentions rollback but it was failed-only: {action!r}"
+            )
+        print("  no rollback in first_actions (failed-only fix excluded): OK")
+
 
 
 def main() -> int:
@@ -136,8 +169,20 @@ def main() -> int:
             print("WARNING: kill_idle_db_connections did not drop below restart_payments_pods")
 
         print("\n=== SSE briefing streams ===")
-        _consume_briefing(client, incident1, {e["incident_id"] for e in demo1["evidence"]})
-        _consume_briefing(client, incident2, {e["incident_id"] for e in demo2["evidence"]})
+        demo1_top_fix = demo1["ranked_fixes"][0]["fix_type"] if demo1["ranked_fixes"] else None
+        demo2_top_fix = demo2["ranked_fixes"][0]["fix_type"] if demo2["ranked_fixes"] else None
+
+        # DEMO-1: just check cited subset + non-empty + top fix in first_actions[0]
+        _consume_briefing(
+            client, incident1, {e["incident_id"] for e in demo1["evidence"]},
+            top_fix_type=demo1_top_fix,
+        )
+        # DEMO-2: also assert no rollback (kill_idle_db_connections failed, rollback may be similar)
+        _consume_briefing(
+            client, incident2, {e["incident_id"] for e in demo2["evidence"]},
+            top_fix_type=demo2_top_fix,
+            check_no_rollback=True,
+        )
 
     return 0
 
