@@ -188,7 +188,7 @@ async def post_alert(alert: Alert) -> AlertResponse:
 
     # --- store as a live incident (skip on dedupe -- it merges into the existing one) ---
     if not deduplicated:
-        incidents.record_alert(incident_id, alert.model_dump(), [e.incident_id for e in evidence])
+        incidents.record_alert(incident_id, alert.model_dump(), [e.incident_id for e in evidence], memory_state)
         try:
             await memory.retain(
                 memory.BANK_LIVE,

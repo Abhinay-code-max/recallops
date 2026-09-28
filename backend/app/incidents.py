@@ -64,7 +64,12 @@ def find_recent_duplicate(service: str, error_signature: str | None, submitted_a
     return None
 
 
-def record_alert(incident_id: str, alert: dict[str, Any], evidence_incident_ids: list[str]) -> dict[str, Any]:
+def record_alert(
+    incident_id: str,
+    alert: dict[str, Any],
+    evidence_incident_ids: list[str],
+    memory_state: str = "no_match",
+) -> dict[str, Any]:
     incident = {
         "incident_id": incident_id,
         "title": alert["title"],
@@ -83,6 +88,7 @@ def record_alert(incident_id: str, alert: dict[str, Any], evidence_incident_ids:
         "fix_attempts": [],
         "postmortem": None,
         "evidence_incident_ids": evidence_incident_ids,
+        "memory_state": memory_state,
     }
     _live_incidents[incident_id] = incident
     return incident

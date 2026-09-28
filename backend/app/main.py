@@ -6,13 +6,19 @@ from fastapi.middleware.cors import CORSMiddleware
 from app import memory
 from app.config import get_settings
 from app.models import HealthResponse
-from app.routes import alert, reset, seed
+from app.routes import alert, briefing, reset, seed
 
 settings = get_settings()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # get_client() is an lru_cache singleton meant to live for one app lifespan. Clear
+    # the cache on startup too, not just close on shutdown -- otherwise a second
+    # `with TestClient(app) as c:` lifecycle in the same process (e.g. a different test
+    # module's fixture) would reuse the previous lifespan's now-closed client instance
+    # and every Hindsight call would fail with "Session is closed".
+    memory.get_client.cache_clear()
     yield
     await memory.get_client().aclose()
 
@@ -29,6 +35,7 @@ app.add_middleware(
 app.include_router(seed.router)
 app.include_router(reset.router)
 app.include_router(alert.router)
+app.include_router(briefing.router)
 
 
 @app.get("/health", response_model=HealthResponse)
