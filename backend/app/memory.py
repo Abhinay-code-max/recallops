@@ -295,6 +295,12 @@ def _load_seed_incidents() -> tuple[dict[str, Any], ...]:
     return tuple(json.loads((_DATA_DIR / "seed_incidents.json").read_text(encoding="utf-8")))
 
 
+def get_seed_incident(incident_id: str) -> dict[str, Any] | None:
+    """Look up one seed incident by ID (from backend/data/seed_incidents.json), or None
+    if it's not a seed incident (e.g. a live incident, INC-023+)."""
+    return {inc["incident_id"]: inc for inc in _load_seed_incidents()}.get(incident_id)
+
+
 def pattern_siblings(top_incident_id: str) -> list[dict[str, Any]]:
     """Given the top recalled incident, return all OTHER incidents sharing its
     error_signature, read from the structured seed data -- never from Hindsight (a
@@ -307,14 +313,20 @@ def pattern_siblings(top_incident_id: str) -> list[dict[str, Any]]:
     ones recall happened to surface). Never merge these into an evidence list -- they
     were not returned by recall, so citing one would violate the CLAUDE.md rule that
     briefings may only cite incident IDs recall actually returned.
+
+    Seed-only by design (matches this function's job: this project's seed data). A
+    top incident that's live instead (not in seed data) returns []; app/incidents.py is
+    where seed and live incidents of the same pattern get combined for scoring.
     """
-    incidents = _load_seed_incidents()
-    by_id = {inc["incident_id"]: inc for inc in incidents}
-    top = by_id.get(top_incident_id)
+    top = get_seed_incident(top_incident_id)
     if top is None:
         return []
     signature = top["error_signature"]
-    return [inc for inc in incidents if inc["incident_id"] != top_incident_id and inc["error_signature"] == signature]
+    return [
+        inc
+        for inc in _load_seed_incidents()
+        if inc["incident_id"] != top_incident_id and inc["error_signature"] == signature
+    ]
 
 
 async def reflect(bank_id: str, query: str, *, budget: str = "low", context: str | None = None) -> str:

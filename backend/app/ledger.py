@@ -67,3 +67,33 @@ def read_ledger() -> dict[str, Any] | None:
     if not LEDGER_PATH.exists():
         return None
     return json.loads(LEDGER_PATH.read_text(encoding="utf-8"))
+
+
+def counts_for_signature(
+    error_signature: str,
+    ledger_data: dict[str, Any],
+    live_feedback: list[dict[str, Any]] | None = None,
+) -> dict[str, dict[str, Any]]:
+    """fix_type -> {worked, partial, failed, incident_ids} for every fix attempted on
+    incidents of this error_signature, merging the seed ledger with live feedback
+    entries (POST /feedback) of the same signature. Used by scoring.rank_fixes() for its
+    worked/partial/failed/attempts inputs -- never Hindsight."""
+    result: dict[str, dict[str, Any]] = {}
+
+    for row in ledger_data.get("counts", []):
+        if row["error_signature"] != error_signature:
+            continue
+        agg = result.setdefault(row["fix_type"], {"worked": 0, "partial": 0, "failed": 0, "incident_ids": []})
+        agg["worked"] += row["worked"]
+        agg["partial"] += row["partial"]
+        agg["failed"] += row["failed"]
+        agg["incident_ids"] += row["incident_ids"]
+
+    for entry in live_feedback or []:
+        if entry.get("error_signature") != error_signature:
+            continue
+        agg = result.setdefault(entry["fix_type"], {"worked": 0, "partial": 0, "failed": 0, "incident_ids": []})
+        agg[entry["outcome"]] += 1
+        agg["incident_ids"].append(entry["incident_id"])
+
+    return result
