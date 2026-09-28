@@ -29,6 +29,13 @@ def _alert_query(alert: dict) -> str:
     return f"{alert['title']}. {alert['symptoms']} {alert['error_message']}"
 
 
+def _augmented_query(alert: dict) -> str:
+    """Query variation for item 2: append error_signature and service explicitly, in
+    case the paraphrased symptoms/log wording alone doesn't carry enough of the
+    matching vocabulary."""
+    return f"{_alert_query(alert)} error_signature={alert['error_signature']} service={alert['service']}"
+
+
 async def _recall_top(query: str):
     outcome = await memory.recall_merged([memory.BANK_INCIDENTS, memory.BANK_LIVE], query)
     return outcome, outcome.hits[:TOP_N]
@@ -87,6 +94,27 @@ async def main() -> int:
         if missing:
             overall_pass = False
             print(f"    MISSING from top {TOP_N}: {sorted(missing)}")
+            print(f"    query used: {query!r}")
+
+            aug_query = _augmented_query(alert)
+            t0 = time.time()
+            aug_outcome, aug_top = await _recall_top(aug_query)
+            aug_elapsed = time.time() - t0
+            aug_found = {h.incident_id for h in aug_top} & expected
+            aug_recall_at_8 = len(aug_found) / len(expected) if expected else 1.0
+
+            print(f"    variation (added error_signature + service): {aug_query!r}")
+            _print_ranked(aug_top, expected)
+            print(
+                f"    variation recall@8: {len(aug_found)}/{len(expected)} = {aug_recall_at_8:.2f}  "
+                f"latency={aug_elapsed:.2f}s degraded={aug_outcome.degraded}"
+            )
+            if aug_recall_at_8 > recall_at_8:
+                print("    -> variation recalls better")
+            elif aug_recall_at_8 < recall_at_8:
+                print("    -> original recalls better")
+            else:
+                print("    -> no difference")
 
     print("\n--- recall@8 summary ---")
     for alert_id, r8 in recall_at_8_summary:
