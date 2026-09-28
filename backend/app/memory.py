@@ -291,14 +291,14 @@ _DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 
 
 @lru_cache
-def _load_seed_incidents() -> tuple[dict[str, Any], ...]:
+def all_seed_incidents() -> tuple[dict[str, Any], ...]:
     return tuple(json.loads((_DATA_DIR / "seed_incidents.json").read_text(encoding="utf-8")))
 
 
 def get_seed_incident(incident_id: str) -> dict[str, Any] | None:
     """Look up one seed incident by ID (from backend/data/seed_incidents.json), or None
     if it's not a seed incident (e.g. a live incident, INC-023+)."""
-    return {inc["incident_id"]: inc for inc in _load_seed_incidents()}.get(incident_id)
+    return {inc["incident_id"]: inc for inc in all_seed_incidents()}.get(incident_id)
 
 
 def pattern_siblings(top_incident_id: str) -> list[dict[str, Any]]:
@@ -324,7 +324,7 @@ def pattern_siblings(top_incident_id: str) -> list[dict[str, Any]]:
     signature = top["error_signature"]
     return [
         inc
-        for inc in _load_seed_incidents()
+        for inc in all_seed_incidents()
         if inc["incident_id"] != top_incident_id and inc["error_signature"] == signature
     ]
 
