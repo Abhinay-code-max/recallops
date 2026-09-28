@@ -18,6 +18,13 @@ from app import ledger, memory
 
 DEDUPE_WINDOW_MINUTES = 5
 
+
+def alert_query(alert: dict[str, Any]) -> str:
+    """The recall query built from an alert -- shared by routes/alert.py and
+    scripts/check_recall.py so the calibration script tests exactly what production
+    does, never a lookalike."""
+    return f"{alert['title']}. {alert.get('symptoms') or ''} {alert['error_message']}"
+
 _live_incidents: dict[str, dict[str, Any]] = {}
 _live_feedback: list[dict[str, Any]] = []
 _next_number = 23

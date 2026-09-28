@@ -19,21 +19,17 @@ from dotenv import load_dotenv
 
 load_dotenv(REPO_ROOT / ".env")
 
-from app import memory, seeding  # noqa: E402
+from app import incidents, memory, seeding  # noqa: E402
 
 DATA_DIR = REPO_ROOT / "backend" / "data"
 TOP_N = 8
-
-
-def _alert_query(alert: dict) -> str:
-    return f"{alert['title']}. {alert['symptoms']} {alert['error_message']}"
 
 
 def _augmented_query(alert: dict) -> str:
     """Query variation for item 2: append error_signature and service explicitly, in
     case the paraphrased symptoms/log wording alone doesn't carry enough of the
     matching vocabulary."""
-    return f"{_alert_query(alert)} error_signature={alert['error_signature']} service={alert['service']}"
+    return f"{incidents.alert_query(alert)} error_signature={alert['error_signature']} service={alert['service']}"
 
 
 async def _recall_top(query: str):
@@ -74,7 +70,7 @@ async def main() -> int:
 
     for alert in demo_alerts:
         expected = set(alert["expected_incident_ids"])
-        query = _alert_query(alert)
+        query = incidents.alert_query(alert)
         t0 = time.time()
         outcome, top = await _recall_top(query)
         elapsed = time.time() - t0

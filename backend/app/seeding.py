@@ -21,6 +21,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from app import incidents as incidents_state
 from app import ledger, memory
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
@@ -154,4 +155,5 @@ async def run_seed() -> SeedResult:
 async def run_reset() -> float:
     t0 = time.time()
     await memory.reset_live_bank()
+    incidents_state.reset_live_state()
     return time.time() - t0
