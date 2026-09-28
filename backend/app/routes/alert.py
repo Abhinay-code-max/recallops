@@ -56,7 +56,16 @@ async def post_alert(alert: Alert) -> AlertResponse:
 
     # --- store as a live incident (skip on dedupe -- it merges into the existing one) ---
     if not deduplicated:
-        incidents.record_alert(incident_id, alert.model_dump(), [e["incident_id"] for e in result.evidence], result.memory_state)
+        incidents.record_alert(
+            incident_id,
+            alert.model_dump(),
+            [e["incident_id"] for e in result.evidence],
+            result.memory_state,
+            ranked_fixes=[r.to_dict() for r in result.ranked_fixes],
+            warnings=result.warnings,
+            team_hint=result.team_hint,
+            recurrence=result.recurrence,
+        )
         try:
             retained = await memory.retain(
                 memory.BANK_LIVE,

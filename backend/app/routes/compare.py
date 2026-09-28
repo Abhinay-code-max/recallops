@@ -82,6 +82,11 @@ async def post_compare(payload: CompareRequest) -> CompareResponse:
         "error_message": alert.error_message,
         "memory_state": result.memory_state,
         "evidence_incident_ids": [e["incident_id"] for e in result.evidence],
+        # Passed through so generate_sections can ground the briefing in ranking data:
+        "ranked_fixes": [r.to_dict() for r in result.ranked_fixes],
+        "warnings": result.warnings,
+        "team_hint": result.team_hint,
+        "recurrence": result.recurrence,
     }
     if result.evidence:
         sections, _cited = await generate_sections(incident_like)

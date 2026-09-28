@@ -89,6 +89,10 @@ def record_alert(
     alert: dict[str, Any],
     evidence_incident_ids: list[str],
     memory_state: str = "no_match",
+    ranked_fixes: list[dict[str, Any]] | None = None,
+    warnings: list[dict[str, Any]] | None = None,
+    team_hint: dict[str, Any] | None = None,
+    recurrence: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     incident = {
         "incident_id": incident_id,
@@ -109,6 +113,11 @@ def record_alert(
         "postmortem": None,
         "evidence_incident_ids": evidence_incident_ids,
         "memory_state": memory_state,
+        # Stored at alert time for briefing.generate_sections() grounding:
+        "ranked_fixes": ranked_fixes or [],
+        "warnings": warnings or [],
+        "team_hint": team_hint,
+        "recurrence": recurrence,
     }
     _live_incidents[incident_id] = incident
     return incident

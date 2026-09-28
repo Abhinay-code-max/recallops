@@ -61,11 +61,14 @@ def test_matched_incident_streams_and_cites_only_evidence(client: TestClient) ->
     assert kinds[-1] == "done"
 
     sections = next(d for e, d in events if e == "sections")
-    assert set(sections.keys()) == {"root_cause", "blast_radius", "first_actions", "last_fixed_by"}
+    assert set(sections.keys()) == {"root_cause", "blast_radius", "first_actions", "last_fixed_by", "sources"}
     assert len(sections["first_actions"]) == 3
+    assert isinstance(sections["sources"], dict)
+    assert set(sections["sources"].keys()) == {"root_cause", "first_actions", "last_fixed_by"}
 
     cited = next(d for e, d in events if e == "done")["cited_incident_ids"]
     assert set(cited) <= evidence_ids  # hallucination guard: only cites recalled evidence
+    assert len(cited) > 0  # matched memory_state must produce non-empty cited_incident_ids
 
 
 @pytest.mark.live
@@ -147,6 +150,7 @@ def test_empty_memory_state_template_says_no_history() -> None:
     assert len(sections["first_actions"]) == 3
     for action in sections["first_actions"]:
         assert "INC-" not in action
+    assert "sources" in sections
 
 
 def test_no_match_template_says_no_similar_incident() -> None:
@@ -160,3 +164,4 @@ def test_no_match_template_says_no_similar_incident() -> None:
     sections = briefing.template_sections(incidents.get_incident("INC-023"))
     assert "no similar" in sections["root_cause"].lower()
     assert sections["last_fixed_by"] is None
+    assert "sources" in sections

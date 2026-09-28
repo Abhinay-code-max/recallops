@@ -86,11 +86,18 @@ class Recurrence(BaseModel):
     message: str
 
 
+class BriefingSources(BaseModel):
+    root_cause: list[str] = []
+    first_actions: list[str] = []
+    last_fixed_by: str | None = None
+
+
 class BriefingSections(BaseModel):
     root_cause: str
     blast_radius: str
     first_actions: list[str] = Field(min_length=3, max_length=3)
     last_fixed_by: str | None = None
+    sources: BriefingSources = Field(default_factory=BriefingSources)
 
 
 class PostmortemTimelineEntry(BaseModel):

@@ -15,7 +15,8 @@ RankedFix    { rank, fix_type, label, score, similarity, worked, partial, failed
 Warning      { kind: "failed_fix"|"recurrence"|"open_permanent_fix", message, incident_ids: string[] }
 TeamHint     { person, reason, incident_ids: string[] }
 Recurrence   { occurrence_number, interval_days_avg|null, open_permanent_fix_incident_id|null, message }
-BriefingSections { root_cause, blast_radius, first_actions: string[3], last_fixed_by|null }
+BriefingSections { root_cause, blast_radius, first_actions: string[3], last_fixed_by|null,
+               sources: {root_cause:[incident_ids], first_actions:[incident_ids], last_fixed_by:incident_id|null} }
 Postmortem   { timeline: {time,event}[], root_cause, fix, action_items: string[] }
 ```
 
@@ -44,4 +45,7 @@ Notes
 - `reflect_summary` on GET /insights is narrative only, from one `reflect` call given the other fields as context -- the UI must never read a number out of it; every number in the response is computed from structured data.
 - GET /insights returns immediately with the deterministic fields; `reflect_summary` is `null` and `reflect_status` is `"pending"` while reflect runs in the background (started at app startup, after POST /seed, POST /reset, POST /feedback and POST /resolve). Poll GET /insights again to pick up `"ready"` (or `"failed"`, still with the deterministic fields intact).
 - GET /health's `seeding` flag is true while a cold-start auto-seed (an empty Hindsight Cloud bank at startup) is running in the background; POST /seed's own response is unaffected either way.
+- Briefing `first_actions[0]` is always the top-ranked fix; no action recommends a fix that has only failed. When `memory_state` is `"matched"`, `cited_incident_ids` is non-empty. `sources` maps each section field to the incident IDs cited in it (computed from structured data, not LLM output).
+- Evidence floor: a recalled hit is included only if `scores.final >= max(0.05, 0.25 * best_score)`, trimming long-tail hits.
+- POST /chat excludes the current incident from evidence and citations (used only as query context). When the answer says there is no relevant history, `evidence` is `[]`.
 
