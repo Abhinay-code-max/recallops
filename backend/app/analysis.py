@@ -10,6 +10,7 @@ the 5 demo alerts' best relevance ranged 0.42-1.07; 3 unrelated nonsense alerts 
 """
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
@@ -19,6 +20,15 @@ from app import incidents, ledger, memory, scoring
 NO_MATCH_THRESHOLD = 0.05
 EVIDENCE_LIMIT = 6
 RECALL_TOP_N = 8
+
+_INCIDENT_ID_RE = re.compile(r"\bINC-\d{3,}\b")
+
+
+def extract_incident_ids(text: str) -> set[str]:
+    """Every INC-xxx substring in `text` -- the hallucination-guard building block
+    shared by routes/briefing.py (checked against a BriefingSections dict's fields) and
+    routes/chat.py (checked against the plain answer string)."""
+    return set(_INCIDENT_ID_RE.findall(text))
 
 
 def relative_time(from_iso: str | None, to_iso: str | None) -> str:

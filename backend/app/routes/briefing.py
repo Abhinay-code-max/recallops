@@ -15,18 +15,17 @@ from __future__ import annotations
 
 import asyncio
 import json
-import re
 from typing import Any, AsyncIterator
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 
 from app import incidents, llm
+from app.analysis import extract_incident_ids
 from app.models import BriefingSections
 
 router = APIRouter()
 
-_INCIDENT_ID_RE = re.compile(r"\bINC-\d{3,}\b")
 _TOKEN_CHUNK_SIZE = 40
 
 _briefing_cache: dict[str, dict[str, Any]] = {}
@@ -45,7 +44,7 @@ def _cited_incident_ids(sections: dict[str, Any]) -> set[str]:
             " ".join(sections.get("first_actions", []) or []),
         ]
     )
-    return set(_INCIDENT_ID_RE.findall(text))
+    return extract_incident_ids(text)
 
 
 def _build_prompt(incident: dict[str, Any], evidence: list[dict[str, Any]]) -> list[dict[str, str]]:
