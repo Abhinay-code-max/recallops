@@ -74,7 +74,7 @@ def _build_evidence(hits: list[memory.RecallHit], submitted_at: str | None) -> l
                 service=incident.get("service"),
                 severity=incident.get("severity"),
                 excerpt=_excerpt(incident),
-                relevance=round(min(max(hit.relevance or 0.0, 0.0), 1.0), 4),
+                relevance=round(scoring.normalize_similarity(hit.relevance or 0.0), 4),
                 source_bank=source_bank,
             )
         )

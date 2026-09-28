@@ -31,13 +31,20 @@ from app.memory import RecallHit
 RECENT_FAILURES_WINDOW = 2
 
 
+def normalize_similarity(raw_relevance: float) -> float:
+    """Calibrated normalisation -- see this module's docstring for the measured table.
+    Exposed standalone so scripts/calibrate_similarity.py can assert against exactly
+    what scoring actually uses, not a reimplementation of it."""
+    return min(max(raw_relevance, 0.0), 1.0)
+
+
 def _similarity(counts_row: dict[str, Any], recalled_by_id: dict[str, RecallHit]) -> float:
     best = 0.0
     for incident_id in counts_row.get("incident_ids", []):
         hit = recalled_by_id.get(incident_id)
         if hit is not None and hit.relevance is not None:
             best = max(best, hit.relevance)
-    return min(max(best, 0.0), 1.0)
+    return normalize_similarity(best)
 
 
 def _recent_failures(fix_type: str, last_window: list[dict[str, Any]]) -> int:
