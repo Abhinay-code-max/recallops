@@ -104,7 +104,8 @@ def test_llm_down_falls_back_to_template(client: TestClient, monkeypatch: pytest
     sections = next(d for e, d in events if e == "sections")
     cited = next(d for e, d in events if e == "done")["cited_incident_ids"]
 
-    assert cited == []  # template never cites an incident ID
+    evidence_ids = {e["incident_id"] for e in alert_response["evidence"]}
+    assert set(cited) <= evidence_ids  # template cites top recalled ids (never invents new ones)
     assert sections["root_cause"]  # still a usable briefing, not an empty/broken one
 
 
@@ -132,7 +133,8 @@ def test_hallucination_guard_falls_back_after_two_bad_citations(client: TestClie
     cited = next(d for e, d in events if e == "done")["cited_incident_ids"]
 
     assert "INC-999" not in json.dumps(sections)  # guard rejected the hallucinated citation
-    assert cited == []
+    evidence_ids = {e["incident_id"] for e in alert_response["evidence"]}
+    assert set(cited) <= evidence_ids  # template fallback cites top recalled ids, never the hallucinated one
 
 
 def test_empty_memory_state_template_says_no_history() -> None:
