@@ -31,15 +31,34 @@ def _ledger_facts_text(top_incident_id: str | None) -> str:
 
 
 def _build_prompt(question: str, evidence: list[dict], ledger_facts: str) -> list[dict[str, str]]:
-    evidence_text = "\n\n".join(
-        f"Incident {e['incident_id']} ({e.get('service')}, {e.get('severity')}, {e.get('date')}): {e.get('excerpt')}"
-        for e in evidence
-    )
+    evidence_lines: list[str] = []
+    for e in evidence:
+        inc = incidents.get_incident(e["incident_id"]) or {}
+        fixes_summary = ", ".join(
+            f"{f.get('fix_type')} ({f.get('outcome')}, resolver: {f.get('resolver', 'unknown')})"
+            for f in inc.get("fix_attempts", [])
+        )
+        resolver_str = inc.get("resolver") or "unknown"
+        parts = [
+            f"Incident {e['incident_id']} ({e.get('service')}, {e.get('severity')}, {e.get('date')}):",
+            f"  Title: {inc.get('title', '')}",
+            f"  Symptoms: {e.get('excerpt')}",
+            f"  Resolver: {resolver_str}",
+        ]
+        if fixes_summary:
+            parts.append(f"  Fixes tried: {fixes_summary}")
+        if inc.get("root_cause"):
+            parts.append(f"  Root cause: {inc.get('root_cause')}")
+        evidence_lines.append("\n".join(parts))
+
+    evidence_text = "\n\n".join(evidence_lines)
     system = (
         "You are an incident response assistant answering a question. Use ONLY the "
         "evidence incidents and fix-outcome facts below. You may cite an incident ID "
-        "(like INC-002) ONLY if it appears in the evidence list -- never invent one. If "
-        "the evidence doesn't answer the question, say so honestly rather than guessing. "
+        "(like INC-002) ONLY if it appears in the evidence list -- never invent one. "
+        "If the question is unrelated to incidents/systems (e.g. weather, general chit-chat) "
+        "or if the evidence contains no relevant history to answer it, you must say that "
+        "you have no relevant incident history to answer that, and cite nothing. "
         'Respond with strict JSON only: {"answer": string}'
     )
     user = (
