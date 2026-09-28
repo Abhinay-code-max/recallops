@@ -146,6 +146,10 @@ def record_resolution(incident_id: str, resolver: str, minutes_to_resolve: int |
     incident["outcome"] = "worked"
 
 
+def live_incidents() -> list[dict[str, Any]]:
+    return list(_live_incidents.values())
+
+
 def get_incident(incident_id: str) -> dict[str, Any] | None:
     seed = memory.get_seed_incident(incident_id)
     if seed is not None:

@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app import ledger, memory
 from app.config import get_settings
 from app.models import HealthResponse
-from app.routes import alert, briefing, compare, demo_alerts, feedback, incidents as incidents_routes, reset, resolve, seed
+from app.routes import alert, briefing, compare, demo_alerts, feedback, incidents as incidents_routes, metrics, reset, resolve, seed
 
 settings = get_settings()
 
@@ -42,6 +42,7 @@ app.include_router(resolve.router)
 app.include_router(demo_alerts.router)
 app.include_router(incidents_routes.router)
 app.include_router(compare.router)
+app.include_router(metrics.router)
 
 
 @app.get("/health", response_model=HealthResponse)

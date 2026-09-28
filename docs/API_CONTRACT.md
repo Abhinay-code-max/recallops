@@ -35,7 +35,7 @@ Postmortem   { timeline: {time,event}[], root_cause, fix, action_items: string[]
 | GET /incidents | - | `[{incident_id, title, service, severity, date, resolver, minutes_to_resolve, outcome:"worked"|"partial"|"failed"|"open"}]` |
 | GET /incidents/{id} | - | list fields plus `{log_snippet, symptoms, root_cause, fix_attempts:[{fix_type,outcome,minutes_to_effect,resolver,notes}], postmortem:string|Postmortem}` |
 | GET /insights | - | `{patterns:[{title, service, frequency:int, interval_days|null, incident_ids}], recurring:[{service, title, recurrence:Recurrence}], open_permanent_fixes:[{incident_id,title,message}], team_knowledge:[{person,summary,incident_ids}], fix_speed_comparison:{first_fix_rollback_avg_min, first_fix_resize_avg_min, sample_size, note}}` |
-| GET /metrics | - | `{counts:{incidents_handled,memories_stored}, historical_avg_mttr_min, real_series:[{n,incident_id,mttr_min}], simulated_series:[{n,mttr_min,accuracy}], simulated:true}` |
+| GET /metrics | - | `{counts:{incidents_handled,memories_stored}, historical_avg_mttr_min, real_series:[{n,incident_id,mttr_min,live?:boolean}], simulated_series:[{n,mttr_min,accuracy}], simulated:true}` |
 
 Notes
 - The simulated series must be labelled "Simulated" in the UI. The real series is the seeded history.
