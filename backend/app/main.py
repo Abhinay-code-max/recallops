@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app import memory
+from app import ledger, memory
 from app.config import get_settings
 from app.models import HealthResponse
 from app.routes import alert, briefing, demo_alerts, feedback, incidents as incidents_routes, reset, resolve, seed
@@ -19,6 +19,7 @@ async def lifespan(app: FastAPI):
     # module's fixture) would reuse the previous lifespan's now-closed client instance
     # and every Hindsight call would fail with "Session is closed".
     memory.get_client.cache_clear()
+    ledger.ensure_fresh()
     yield
     await memory.get_client().aclose()
 

@@ -11,6 +11,7 @@ per docs/AGENTS.md so this project doesn't add it directly).
 """
 from __future__ import annotations
 
+import hashlib
 import json
 from datetime import datetime, timezone
 from pathlib import Path
@@ -18,6 +19,11 @@ from typing import Any
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 LEDGER_PATH = DATA_DIR / "ledger.json"
+SEED_INCIDENTS_PATH = DATA_DIR / "seed_incidents.json"
+
+
+def _source_hash(incidents: list[dict[str, Any]]) -> str:
+    return hashlib.sha256(json.dumps(incidents, sort_keys=True).encode("utf-8")).hexdigest()
 
 
 def compute_ledger(incidents: list[dict[str, Any]]) -> dict[str, Any]:
@@ -48,6 +54,7 @@ def compute_ledger(incidents: list[dict[str, Any]]) -> dict[str, Any]:
 
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(),
+        "source_hash": _source_hash(incidents),
         "counts": sorted(rows.values(), key=lambda r: (r["service"], r["error_signature"], r["fix_type"])),
         "totals": {
             "incidents": len(incidents),
@@ -67,6 +74,22 @@ def read_ledger() -> dict[str, Any] | None:
     if not LEDGER_PATH.exists():
         return None
     return json.loads(LEDGER_PATH.read_text(encoding="utf-8"))
+
+
+def load_seed_incidents() -> list[dict[str, Any]]:
+    return json.loads(SEED_INCIDENTS_PATH.read_text(encoding="utf-8"))
+
+
+def ensure_fresh(incidents: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+    """Rebuild ledger.json if it's missing or stale (its source_hash doesn't match the
+    current seed_incidents.json) -- called on app startup and after POST /reset, so the
+    ledger can never silently go missing or drift from the seed data it's derived from."""
+    if incidents is None:
+        incidents = load_seed_incidents()
+    existing = read_ledger()
+    if existing is not None and existing.get("source_hash") == _source_hash(incidents):
+        return existing
+    return write_ledger(incidents)
 
 
 def counts_for_signature(

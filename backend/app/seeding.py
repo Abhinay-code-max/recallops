@@ -158,4 +158,5 @@ async def run_reset() -> float:
     await memory.reset_live_bank()
     incidents_state.reset_live_state()
     briefing.clear_cache()
+    ledger.ensure_fresh()
     return time.time() - t0
