@@ -29,3 +29,38 @@ class Settings:
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
+
+
+# --- security settings -------------------------------------------------------------------
+# Read from the environment at call time (not cached at import) so tests can patch them and a
+# restart is never needed to pick a value up. Values are secrets: never log or return them.
+def app_env() -> str:
+    return os.environ.get("APP_ENV", "development").strip().lower()
+
+
+def is_production() -> bool:
+    return app_env() == "production"
+
+
+def admin_api_key() -> str:
+    return os.environ.get("ADMIN_API_KEY", "")
+
+
+def ingest_api_key() -> str:
+    return os.environ.get("INGEST_API_KEY", "")
+
+
+def trusted_proxy_hops() -> int:
+    """How many reverse-proxy hops append to X-Forwarded-For (0 = use the socket peer)."""
+    try:
+        return max(0, int(os.environ.get("RATE_LIMIT_TRUSTED_HOPS", "0")))
+    except ValueError:
+        return 0
+
+
+def max_live_incidents() -> int:
+    try:
+        return max(1, int(os.environ.get("MAX_LIVE_INCIDENTS", "200")))
+    except ValueError:
+        return 200
+

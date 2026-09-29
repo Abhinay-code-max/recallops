@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, HTTPException
 
-from app import incidents, llm, memory
+from app import incidents, llm, memory, security
 from app.models import Postmortem, ResolveRequest, ResolveResponse
 from app.routes import insights
 
@@ -62,6 +62,7 @@ async def post_resolve(payload: ResolveRequest) -> ResolveResponse:
     if incident is None:
         raise HTTPException(status_code=404, detail={"error": {"code": "not_found", "message": "incident not found"}})
 
+    security.check_resolve_allowed(payload.incident_id)
     feedback = incidents.feedback_for(payload.incident_id)
     postmortem = await _generate_postmortem(incident, feedback, payload.resolver, payload.resolution_notes)
 

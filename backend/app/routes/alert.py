@@ -7,9 +7,9 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Header
 
-from app import analysis, incidents, memory
+from app import analysis, incidents, memory, security
 from app.models import (
     Alert,
     AlertResponse,
@@ -38,7 +38,9 @@ def _retain_content(incident_id: str, alert: Alert, masked_log: str) -> str:
 
 
 @router.post("/alert", response_model=AlertResponse)
-async def post_alert(alert: Alert) -> AlertResponse:
+async def post_alert(alert: Alert, x_recallops_key: str | None = Header(default=None)) -> AlertResponse:
+    # Hardened mode: ingest key, or an exact predefined demo alert (replaced by the server copy).
+    alert = security.authorize_alert(alert, x_recallops_key)
     # --- normalise ---------------------------------------------------------------
     if not alert.submitted_at:
         alert.submitted_at = _now_iso()

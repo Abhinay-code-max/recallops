@@ -151,6 +151,24 @@ was retained and became available to future recall. No LLM retraining occurred.
 - Production frontend/CORS/console results are owner-reported and not verified by these
   artifacts: see `evaluation/production_frontend_note.md`.
 
+## Security (production hardening)
+
+Set `APP_ENV=production` on the server. This disables `/docs`, `/redoc` and `/openapi.json` and turns on
+hardened mode (also enabled whenever `ADMIN_API_KEY` or `INGEST_API_KEY` is set). Local development stays open.
+
+| Endpoint | Protection |
+|---|---|
+| `POST /seed`, `POST /reset` | `ADMIN_API_KEY` in the `X-RecallOps-Key` header (fails closed if unset in production); 5/min per IP |
+| `POST /alert` | `INGEST_API_KEY` (or the admin key), **or** content that exactly matches a predefined demo alert, which is replaced by the server's copy; 10/min per IP |
+| `POST /feedback`, `POST /resolve` | Public (the browser demo calls them), narrowed to live incidents, known fix types, 12 feedback per incident, resolve once; rate limited |
+| `POST /chat`, `POST /compare`, briefing stream | Public, rate limited, input length limits |
+
+Request bodies are capped at 64 KB and text fields have length limits (422 when exceeded). Keys live only in
+server env vars: **never** put them in `VITE_*` or the frontend bundle. An operator can use the UI's Seed/Reset
+buttons or custom alerts by running `sessionStorage.setItem('recallops_key', '<key>')` in the browser console.
+Set `RATE_LIMIT_TRUSTED_HOPS` to the number of proxy hops that append to `X-Forwarded-For` (default 0). Rate
+limits are per process; feedback is still open to abuse within its caps, and there is no user authentication.
+
 ## Configuration
 
 All config comes from `.env` (see `.env.example`): `HINDSIGHT_API_KEY`, `HINDSIGHT_BASE_URL`,

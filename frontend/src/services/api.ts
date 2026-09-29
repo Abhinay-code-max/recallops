@@ -52,6 +52,15 @@ class RecallOpsApi {
       headers['Content-Type'] = 'application/json';
     }
 
+    // Operator-only: an admin/ingest key the operator pastes into sessionStorage
+    // (sessionStorage.setItem('recallops_key', '...')). Never bundled or read from VITE_* env.
+    try {
+      const operatorKey = window.sessionStorage.getItem('recallops_key');
+      if (operatorKey) headers['X-RecallOps-Key'] = operatorKey;
+    } catch {
+      // sessionStorage unavailable: continue without a key
+    }
+
     const res = await fetch(url, {
       ...options,
       headers,

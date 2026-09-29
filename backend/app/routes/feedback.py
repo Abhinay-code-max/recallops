@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, HTTPException
 
-from app import incidents, ledger, memory, scoring
+from app import incidents, ledger, memory, scoring, security
 from app.models import FeedbackRequest, FeedbackResponse, RankedFixOut, Warning as WarningOut
 from app.routes import insights
 
@@ -18,6 +18,7 @@ async def post_feedback(feedback: FeedbackRequest) -> FeedbackResponse:
     if incident is None:
         raise HTTPException(status_code=404, detail={"error": {"code": "not_found", "message": "incident not found"}})
 
+    security.check_feedback_allowed(feedback.incident_id, feedback.fix_type)
     incidents.record_feedback(feedback.incident_id, feedback.fix_type, feedback.outcome, feedback.notes)
     insights.clear_cache()
 

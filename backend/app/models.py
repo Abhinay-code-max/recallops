@@ -29,16 +29,17 @@ class AlertMetrics(BaseModel):
 
 
 class Alert(BaseModel):
-    alert_id: str | None = None
-    service: str
+    # Length limits sit well above the largest seed/demo values (title 83, symptoms 208, log 346).
+    alert_id: str | None = Field(default=None, max_length=64)
+    service: str = Field(max_length=64)
     severity: Literal["SEV1", "SEV2", "SEV3"]
-    title: str
-    symptoms: str | None = None
-    error_message: str
-    log_snippet: str
-    error_signature: str | None = None
-    submitted_at: str | None = None
-    deploy: str | None = None
+    title: str = Field(max_length=200)
+    symptoms: str | None = Field(default=None, max_length=2000)
+    error_message: str = Field(max_length=1000)
+    log_snippet: str = Field(max_length=4000)
+    error_signature: str | None = Field(default=None, max_length=100)
+    submitted_at: str | None = Field(default=None, max_length=40)
+    deploy: str | None = Field(default=None, max_length=200)
     metrics: AlertMetrics | None = None
 
 
@@ -131,10 +132,10 @@ class AlertResponse(BaseModel):
 
 # --- POST /feedback -------------------------------------------------------------------
 class FeedbackRequest(BaseModel):
-    incident_id: str
-    fix_type: str
+    incident_id: str = Field(max_length=32)
+    fix_type: str = Field(max_length=100)
     outcome: Literal["worked", "partial", "failed"]
-    notes: str | None = None
+    notes: str | None = Field(default=None, max_length=500)
 
 
 class FeedbackResponse(BaseModel):
@@ -145,10 +146,10 @@ class FeedbackResponse(BaseModel):
 
 # --- POST /resolve -------------------------------------------------------------------
 class ResolveRequest(BaseModel):
-    incident_id: str
-    resolver: str
-    resolution_notes: str | None = None
-    minutes_to_resolve: int | None = None
+    incident_id: str = Field(max_length=32)
+    resolver: str = Field(max_length=100)
+    resolution_notes: str | None = Field(default=None, max_length=2000)
+    minutes_to_resolve: int | None = Field(default=None, ge=0, le=100000)
 
 
 class ResolveResponse(BaseModel):
@@ -285,8 +286,8 @@ class InsightsResponse(BaseModel):
 
 # --- POST /chat -------------------------------------------------------------------
 class ChatRequest(BaseModel):
-    incident_id: str | None = None
-    question: str
+    incident_id: str | None = Field(default=None, max_length=32)
+    question: str = Field(max_length=1000)
 
 
 class ChatResponse(BaseModel):

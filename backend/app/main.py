@@ -3,8 +3,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app import ledger, memory, seeding
-from app.config import get_settings
+from app import ledger, memory, security, seeding
+from app.config import get_settings, is_production
 from app.models import HealthResponse
 from app.routes import alert, briefing, chat, compare, demo_alerts, feedback, incidents as incidents_routes, insights, metrics, reset, resolve, seed
 
@@ -18,6 +18,7 @@ async def lifespan(app: FastAPI):
     # `with TestClient(app) as c:` lifecycle in the same process (e.g. a different test
     # module's fixture) would reuse the previous lifespan's now-closed client instance
     # and every Hindsight call would fail with "Session is closed".
+    security.startup_warnings()  # names only, never key values
     memory.get_client.cache_clear()
     await memory.ensure_banks()
     ledger.ensure_fresh()
@@ -28,7 +29,13 @@ async def lifespan(app: FastAPI):
     await memory.get_client().aclose()
 
 
-app = FastAPI(title="RecallOps API", lifespan=lifespan)
+# Interactive docs and the OpenAPI schema are disabled when APP_ENV=production.
+_docs = {"docs_url": None, "redoc_url": None, "openapi_url": None} if is_production() else {}
+app = FastAPI(title="RecallOps API", lifespan=lifespan, **_docs)
+
+# Added BEFORE CORS so CORS is outermost and 401/413/429 responses still carry CORS headers.
+# CORS is not authentication; see app/security.py.
+app.add_middleware(security.SecurityMiddleware)
 
 app.add_middleware(
     CORSMiddleware,
