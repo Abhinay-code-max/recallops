@@ -1,0 +1,49 @@
+{
+  "request": {
+    "incident_id": "INC-024",
+    "resolver": "RecallOps learning evaluation",
+    "resolution_notes": "Recurring pool-exhaustion incident closed after the feedback-learning comparison; retain this occurrence as future operational memory.",
+    "minutes_to_resolve": 8
+  },
+  "response": {
+    "postmortem": {
+      "timeline": [
+        {
+          "time": "2026-09-27T14:00Z",
+          "event": "Deploy of version 2.3.7 to payments-api"
+        },
+        {
+          "time": "2026-09-27T14:05Z",
+          "event": "Connection pool exhaustion errors observed in checkout flow"
+        },
+        {
+          "time": "2026-09-27T14:07Z",
+          "event": "On\u2011call alerted, began investigation"
+        },
+        {
+          "time": "2026-09-27T14:12Z",
+          "event": "Attempted rollback of the Friday deploy"
+        },
+        {
+          "time": "2026-09-27T14:20Z",
+          "event": "Rollback aborted due to pending traffic; applied temporary connection\u2011pool limit increase"
+        },
+        {
+          "time": "2026-09-27T14:45Z",
+          "event": "Incident declared resolved after pool usage stabilized"
+        }
+      ],
+      "root_cause": "The Friday deploy introduced a configuration change that set the database connection pool max size too low, causing rapid exhaustion under normal checkout traffic.",
+      "fix": "Restored the correct pool size in the deployment configuration, added a circuit\u2011breaker to reject new requests when pool usage exceeds 80%, and redeployed the corrected version.",
+      "action_items": [
+        "Add automated alerts for connection\u2011pool usage thresholds",
+        "Review and test all configuration changes in staging before production deploys",
+        "Include connection\u2011pool health checks in the CI pipeline",
+        "Update runbook to include rapid rollback steps for pool\u2011exhaustion scenarios",
+        "Conduct a post\u2011deployment validation checklist for payments\u2011api"
+      ]
+    },
+    "memories_stored": 1
+  },
+  "resolved_at_utc": "2026-09-29T06:25:53.803044Z"
+}

@@ -1,0 +1,771 @@
+{
+  "C01": {
+    "pattern_signature": "postgres_pool_exhaustion",
+    "service": "payments-api",
+    "expected_incident_ids": [
+      "INC-002",
+      "INC-009",
+      "INC-017",
+      "INC-021"
+    ],
+    "related_incident_ids": [],
+    "prior_occurrences": 4,
+    "expected_occurrence_number": 5,
+    "known_root_causes": {
+      "INC-002": "The v2.3.0 deploy's new order-confirmation retry path opens a DB session per retry without releasing it on timeout, exhausting the 20-connection Postgres pool within minutes of Friday peak traffic.",
+      "INC-009": "Same order-confirmation retry session leak as INC-002 (still unfixed in code), triggered again by Friday deploy traffic.",
+      "INC-017": "Same unresolved order-confirmation session leak, now triggered a third time by the v2.4.0 Friday deploy.",
+      "INC-021": "Fourth occurrence of the same unfixed order-confirmation session leak, triggered by the v2.5.0 Friday deploy."
+    },
+    "worked_fixes": {
+      "increase_postgres_pool_size": "(increas|rais|resiz|bump|expand|grow|enlarg).{0,40}(pool|max[_ ]?connections|maximumpoolsize|connection limit)|pool size|max pool",
+      "kill_idle_db_connections": "(kill|terminat|close|drop|clear|free|reap|release).{0,40}(idle|stale|leak|orphan|stuck).{0,30}(connection|session)|pg_terminate_backend"
+    },
+    "failed_fixes": {
+      "rollback_to_previous_deploy": "roll ?back|revert (the |this )?(deploy|release|change|version)|redeploy (the )?(previous|prior|last)|previous (version|release|deploy)"
+    },
+    "fix_outcomes": {
+      "rollback_to_previous_deploy": {
+        "worked": 0,
+        "partial": 0,
+        "failed": 2
+      },
+      "restart_payments_pods": {
+        "worked": 0,
+        "partial": 1,
+        "failed": 0
+      },
+      "increase_postgres_pool_size": {
+        "worked": 3,
+        "partial": 0,
+        "failed": 0
+      },
+      "kill_idle_db_connections": {
+        "worked": 1,
+        "partial": 1,
+        "failed": 0
+      }
+    },
+    "resolvers_with_worked_fix": [
+      "Priya Nair"
+    ],
+    "primary_resolver": "Priya Nair",
+    "root_cause_generic": "pool.{0,40}(exhaust|saturat|full|deplet|starv)|exhaust.{0,40}(pool|connection)|connection.{0,30}(exhaust|slots|limit|leak)|max_connections|too many connections|hikari",
+    "root_cause_specific": {
+      "groups": [
+        "leak|not (being )?(released|closed|returned)|without releas|never (released|closed|returned)|unreleased|orphan|not releas",
+        "retry|retries",
+        "order[- ]confirmation"
+      ],
+      "required": [
+        0
+      ],
+      "min_groups": 2
+    }
+  },
+  "C02": {
+    "pattern_signature": "postgres_pool_exhaustion",
+    "service": "payments-api",
+    "expected_incident_ids": [
+      "INC-002",
+      "INC-009",
+      "INC-017",
+      "INC-021"
+    ],
+    "related_incident_ids": [],
+    "prior_occurrences": 4,
+    "expected_occurrence_number": 5,
+    "known_root_causes": {
+      "INC-002": "The v2.3.0 deploy's new order-confirmation retry path opens a DB session per retry without releasing it on timeout, exhausting the 20-connection Postgres pool within minutes of Friday peak traffic.",
+      "INC-009": "Same order-confirmation retry session leak as INC-002 (still unfixed in code), triggered again by Friday deploy traffic.",
+      "INC-017": "Same unresolved order-confirmation session leak, now triggered a third time by the v2.4.0 Friday deploy.",
+      "INC-021": "Fourth occurrence of the same unfixed order-confirmation session leak, triggered by the v2.5.0 Friday deploy."
+    },
+    "worked_fixes": {
+      "increase_postgres_pool_size": "(increas|rais|resiz|bump|expand|grow|enlarg).{0,40}(pool|max[_ ]?connections|maximumpoolsize|connection limit)|pool size|max pool",
+      "kill_idle_db_connections": "(kill|terminat|close|drop|clear|free|reap|release).{0,40}(idle|stale|leak|orphan|stuck).{0,30}(connection|session)|pg_terminate_backend"
+    },
+    "failed_fixes": {
+      "rollback_to_previous_deploy": "roll ?back|revert (the |this )?(deploy|release|change|version)|redeploy (the )?(previous|prior|last)|previous (version|release|deploy)"
+    },
+    "fix_outcomes": {
+      "rollback_to_previous_deploy": {
+        "worked": 0,
+        "partial": 0,
+        "failed": 2
+      },
+      "restart_payments_pods": {
+        "worked": 0,
+        "partial": 1,
+        "failed": 0
+      },
+      "increase_postgres_pool_size": {
+        "worked": 3,
+        "partial": 0,
+        "failed": 0
+      },
+      "kill_idle_db_connections": {
+        "worked": 1,
+        "partial": 1,
+        "failed": 0
+      }
+    },
+    "resolvers_with_worked_fix": [
+      "Priya Nair"
+    ],
+    "primary_resolver": "Priya Nair",
+    "root_cause_generic": "pool.{0,40}(exhaust|saturat|full|deplet|starv)|exhaust.{0,40}(pool|connection)|connection.{0,30}(exhaust|slots|limit|leak)|max_connections|too many connections|hikari",
+    "root_cause_specific": {
+      "groups": [
+        "leak|not (being )?(released|closed|returned)|without releas|never (released|closed|returned)|unreleased|orphan|not releas",
+        "retry|retries",
+        "order[- ]confirmation"
+      ],
+      "required": [
+        0
+      ],
+      "min_groups": 2
+    }
+  },
+  "C03": {
+    "pattern_signature": "redis_oom",
+    "service": "order-worker",
+    "expected_incident_ids": [
+      "INC-003",
+      "INC-008",
+      "INC-015"
+    ],
+    "related_incident_ids": [
+      "INC-019"
+    ],
+    "prior_occurrences": 3,
+    "expected_occurrence_number": 4,
+    "known_root_causes": {
+      "INC-003": "Weekend order volume queued jobs and cached idempotency keys in Redis without eviction; by Monday's traffic ramp Redis hit its 2GB maxmemory limit with the default noeviction policy.",
+      "INC-008": "The allkeys-lru eviction policy set after INC-003 slowed the OOM but idempotency keys from the order-retry-queue still have no TTL, so memory pressure builds back up over the weekend.",
+      "INC-015": "Root-caused at last: the order-retry-queue's dead-letter keys were excluded from the TTL fix added in INC-008 due to a key-prefix mismatch (retry: vs order-retry:); those keys never expired."
+    },
+    "worked_fixes": {
+      "restart_redis_and_set_eviction_policy": "eviction|maxmemory-policy|allkeys-lru|volatile-lru",
+      "add_ttl_to_job_result_keys": "\\bttl\\b|expire|expiry|expiration",
+      "fix_ttl_key_prefix_mismatch": "prefix|ttl.{0,50}(filter|mismatch|cover|miss|exclud)|(filter|mismatch|exclud).{0,50}ttl|dead-?letter"
+    },
+    "failed_fixes": {},
+    "fix_outcomes": {
+      "manual_flush_stale_keys": {
+        "worked": 0,
+        "partial": 2,
+        "failed": 0
+      },
+      "restart_redis_and_set_eviction_policy": {
+        "worked": 1,
+        "partial": 0,
+        "failed": 0
+      },
+      "add_ttl_to_job_result_keys": {
+        "worked": 1,
+        "partial": 0,
+        "failed": 0
+      },
+      "fix_ttl_key_prefix_mismatch": {
+        "worked": 1,
+        "partial": 0,
+        "failed": 0
+      }
+    },
+    "resolvers_with_worked_fix": [
+      "Ananya Iyer"
+    ],
+    "primary_resolver": "Ananya Iyer",
+    "root_cause_generic": "redis.{0,60}(memory|oom|maxmemory|full)|out of memory|maxmemory|used memory",
+    "root_cause_specific": {
+      "groups": [
+        "\\bttl\\b|never expire|no expir|without expir|no expiry|expire",
+        "prefix|dead-?letter|order-retry|retry:",
+        "idempotency|retry.?queue|job.?result"
+      ],
+      "required": [
+        0
+      ],
+      "min_groups": 2
+    }
+  },
+  "C04": {
+    "pattern_signature": "kafka_consumer_lag",
+    "service": "order-worker",
+    "expected_incident_ids": [
+      "INC-006",
+      "INC-020"
+    ],
+    "related_incident_ids": [],
+    "prior_occurrences": 2,
+    "expected_occurrence_number": 3,
+    "known_root_causes": {
+      "INC-006": "Sale traffic pushed the produce rate to ~4x baseline; the order-processing consumer group (3 replicas) could not keep pace with partition throughput.",
+      "INC-020": "Sale traffic again exceeded consumer throughput capacity, same as INC-006, but this time the team pre-scaled ahead of the event per the INC-006 postmortem action item -- lag still spiked briefly due to a delayed autoscaler trigger."
+    },
+    "worked_fixes": {
+      "scale_consumer_replicas": "(scal|add|increas|bump|spin).{0,30}(consumer|replica|instance|worker)|more consumers"
+    },
+    "failed_fixes": {
+      "increase_topic_partition_count_live": "(increas|add|expand|repartition|raise).{0,30}partition"
+    },
+    "fix_outcomes": {
+      "increase_topic_partition_count_live": {
+        "worked": 0,
+        "partial": 0,
+        "failed": 1
+      },
+      "scale_consumer_replicas": {
+        "worked": 2,
+        "partial": 0,
+        "failed": 0
+      }
+    },
+    "resolvers_with_worked_fix": [
+      "Rahul Mehta"
+    ],
+    "primary_resolver": "Rahul Mehta",
+    "root_cause_generic": "consumer.{0,40}(lag|behind|slow|backlog)|lag|backlog|throughput",
+    "root_cause_specific": {
+      "groups": [
+        "consumer.{0,60}(capacity|throughput|pace|too few|insufficient|not enough|under-?provision|limit|replica)|(replica|consumer).{0,20}(count|number)|parallelism",
+        "traffic|volume|produce rate|producer|surge|spike|load|sale|peak|4x",
+        "autoscal|pre-?scal|scale.{0,15}(ahead|late|delay|slow|in advance)"
+      ],
+      "required": [
+        0
+      ],
+      "min_groups": 2
+    }
+  },
+  "C05": {
+    "pattern_signature": "postgres_pool_exhaustion",
+    "service": "payments-api",
+    "expected_incident_ids": [
+      "INC-002",
+      "INC-009",
+      "INC-017",
+      "INC-021"
+    ],
+    "related_incident_ids": [],
+    "prior_occurrences": 4,
+    "expected_occurrence_number": 5,
+    "known_root_causes": {
+      "INC-002": "The v2.3.0 deploy's new order-confirmation retry path opens a DB session per retry without releasing it on timeout, exhausting the 20-connection Postgres pool within minutes of Friday peak traffic.",
+      "INC-009": "Same order-confirmation retry session leak as INC-002 (still unfixed in code), triggered again by Friday deploy traffic.",
+      "INC-017": "Same unresolved order-confirmation session leak, now triggered a third time by the v2.4.0 Friday deploy.",
+      "INC-021": "Fourth occurrence of the same unfixed order-confirmation session leak, triggered by the v2.5.0 Friday deploy."
+    },
+    "worked_fixes": {
+      "increase_postgres_pool_size": "(increas|rais|resiz|bump|expand|grow|enlarg).{0,40}(pool|max[_ ]?connections|maximumpoolsize|connection limit)|pool size|max pool",
+      "kill_idle_db_connections": "(kill|terminat|close|drop|clear|free|reap|release).{0,40}(idle|stale|leak|orphan|stuck).{0,30}(connection|session)|pg_terminate_backend"
+    },
+    "failed_fixes": {
+      "rollback_to_previous_deploy": "roll ?back|revert (the |this )?(deploy|release|change|version)|redeploy (the )?(previous|prior|last)|previous (version|release|deploy)"
+    },
+    "fix_outcomes": {
+      "rollback_to_previous_deploy": {
+        "worked": 0,
+        "partial": 0,
+        "failed": 2
+      },
+      "restart_payments_pods": {
+        "worked": 0,
+        "partial": 1,
+        "failed": 0
+      },
+      "increase_postgres_pool_size": {
+        "worked": 3,
+        "partial": 0,
+        "failed": 0
+      },
+      "kill_idle_db_connections": {
+        "worked": 1,
+        "partial": 1,
+        "failed": 0
+      }
+    },
+    "resolvers_with_worked_fix": [
+      "Priya Nair"
+    ],
+    "primary_resolver": "Priya Nair",
+    "root_cause_generic": "pool.{0,40}(exhaust|saturat|full|deplet|starv)|exhaust.{0,40}(pool|connection)|connection.{0,30}(exhaust|slots|limit|leak)|max_connections|too many connections|hikari",
+    "root_cause_specific": {
+      "groups": [
+        "leak|not (being )?(released|closed|returned)|without releas|never (released|closed|returned)|unreleased|orphan|not releas",
+        "retry|retries",
+        "order[- ]confirmation"
+      ],
+      "required": [
+        0
+      ],
+      "min_groups": 2
+    }
+  },
+  "C06": {
+    "pattern_signature": "postgres_pool_exhaustion",
+    "service": "payments-api",
+    "expected_incident_ids": [
+      "INC-002",
+      "INC-009",
+      "INC-017",
+      "INC-021"
+    ],
+    "related_incident_ids": [],
+    "prior_occurrences": 4,
+    "expected_occurrence_number": 5,
+    "known_root_causes": {
+      "INC-002": "The v2.3.0 deploy's new order-confirmation retry path opens a DB session per retry without releasing it on timeout, exhausting the 20-connection Postgres pool within minutes of Friday peak traffic.",
+      "INC-009": "Same order-confirmation retry session leak as INC-002 (still unfixed in code), triggered again by Friday deploy traffic.",
+      "INC-017": "Same unresolved order-confirmation session leak, now triggered a third time by the v2.4.0 Friday deploy.",
+      "INC-021": "Fourth occurrence of the same unfixed order-confirmation session leak, triggered by the v2.5.0 Friday deploy."
+    },
+    "worked_fixes": {
+      "increase_postgres_pool_size": "(increas|rais|resiz|bump|expand|grow|enlarg).{0,40}(pool|max[_ ]?connections|maximumpoolsize|connection limit)|pool size|max pool",
+      "kill_idle_db_connections": "(kill|terminat|close|drop|clear|free|reap|release).{0,40}(idle|stale|leak|orphan|stuck).{0,30}(connection|session)|pg_terminate_backend"
+    },
+    "failed_fixes": {
+      "rollback_to_previous_deploy": "roll ?back|revert (the |this )?(deploy|release|change|version)|redeploy (the )?(previous|prior|last)|previous (version|release|deploy)"
+    },
+    "fix_outcomes": {
+      "rollback_to_previous_deploy": {
+        "worked": 0,
+        "partial": 0,
+        "failed": 2
+      },
+      "restart_payments_pods": {
+        "worked": 0,
+        "partial": 1,
+        "failed": 0
+      },
+      "increase_postgres_pool_size": {
+        "worked": 3,
+        "partial": 0,
+        "failed": 0
+      },
+      "kill_idle_db_connections": {
+        "worked": 1,
+        "partial": 1,
+        "failed": 0
+      }
+    },
+    "resolvers_with_worked_fix": [
+      "Priya Nair"
+    ],
+    "primary_resolver": "Priya Nair",
+    "root_cause_generic": "pool.{0,40}(exhaust|saturat|full|deplet|starv)|exhaust.{0,40}(pool|connection)|connection.{0,30}(exhaust|slots|limit|leak)|max_connections|too many connections|hikari",
+    "root_cause_specific": {
+      "groups": [
+        "leak|not (being )?(released|closed|returned)|without releas|never (released|closed|returned)|unreleased|orphan|not releas",
+        "retry|retries",
+        "order[- ]confirmation"
+      ],
+      "required": [
+        0
+      ],
+      "min_groups": 2
+    }
+  },
+  "C07": {
+    "pattern_signature": "redis_oom",
+    "service": "order-worker",
+    "expected_incident_ids": [
+      "INC-003",
+      "INC-008",
+      "INC-015"
+    ],
+    "related_incident_ids": [
+      "INC-019"
+    ],
+    "prior_occurrences": 3,
+    "expected_occurrence_number": 4,
+    "known_root_causes": {
+      "INC-003": "Weekend order volume queued jobs and cached idempotency keys in Redis without eviction; by Monday's traffic ramp Redis hit its 2GB maxmemory limit with the default noeviction policy.",
+      "INC-008": "The allkeys-lru eviction policy set after INC-003 slowed the OOM but idempotency keys from the order-retry-queue still have no TTL, so memory pressure builds back up over the weekend.",
+      "INC-015": "Root-caused at last: the order-retry-queue's dead-letter keys were excluded from the TTL fix added in INC-008 due to a key-prefix mismatch (retry: vs order-retry:); those keys never expired."
+    },
+    "worked_fixes": {
+      "restart_redis_and_set_eviction_policy": "eviction|maxmemory-policy|allkeys-lru|volatile-lru",
+      "add_ttl_to_job_result_keys": "\\bttl\\b|expire|expiry|expiration",
+      "fix_ttl_key_prefix_mismatch": "prefix|ttl.{0,50}(filter|mismatch|cover|miss|exclud)|(filter|mismatch|exclud).{0,50}ttl|dead-?letter"
+    },
+    "failed_fixes": {},
+    "fix_outcomes": {
+      "manual_flush_stale_keys": {
+        "worked": 0,
+        "partial": 2,
+        "failed": 0
+      },
+      "restart_redis_and_set_eviction_policy": {
+        "worked": 1,
+        "partial": 0,
+        "failed": 0
+      },
+      "add_ttl_to_job_result_keys": {
+        "worked": 1,
+        "partial": 0,
+        "failed": 0
+      },
+      "fix_ttl_key_prefix_mismatch": {
+        "worked": 1,
+        "partial": 0,
+        "failed": 0
+      }
+    },
+    "resolvers_with_worked_fix": [
+      "Ananya Iyer"
+    ],
+    "primary_resolver": "Ananya Iyer",
+    "root_cause_generic": "redis.{0,60}(memory|oom|maxmemory|full)|out of memory|maxmemory|used memory",
+    "root_cause_specific": {
+      "groups": [
+        "\\bttl\\b|never expire|no expir|without expir|no expiry|expire",
+        "prefix|dead-?letter|order-retry|retry:",
+        "idempotency|retry.?queue|job.?result"
+      ],
+      "required": [
+        0
+      ],
+      "min_groups": 2
+    }
+  },
+  "C08": {
+    "pattern_signature": "kafka_consumer_lag",
+    "service": "order-worker",
+    "expected_incident_ids": [
+      "INC-006",
+      "INC-020"
+    ],
+    "related_incident_ids": [],
+    "prior_occurrences": 2,
+    "expected_occurrence_number": 3,
+    "known_root_causes": {
+      "INC-006": "Sale traffic pushed the produce rate to ~4x baseline; the order-processing consumer group (3 replicas) could not keep pace with partition throughput.",
+      "INC-020": "Sale traffic again exceeded consumer throughput capacity, same as INC-006, but this time the team pre-scaled ahead of the event per the INC-006 postmortem action item -- lag still spiked briefly due to a delayed autoscaler trigger."
+    },
+    "worked_fixes": {
+      "scale_consumer_replicas": "(scal|add|increas|bump|spin).{0,30}(consumer|replica|instance|worker)|more consumers"
+    },
+    "failed_fixes": {
+      "increase_topic_partition_count_live": "(increas|add|expand|repartition|raise).{0,30}partition"
+    },
+    "fix_outcomes": {
+      "increase_topic_partition_count_live": {
+        "worked": 0,
+        "partial": 0,
+        "failed": 1
+      },
+      "scale_consumer_replicas": {
+        "worked": 2,
+        "partial": 0,
+        "failed": 0
+      }
+    },
+    "resolvers_with_worked_fix": [
+      "Rahul Mehta"
+    ],
+    "primary_resolver": "Rahul Mehta",
+    "root_cause_generic": "consumer.{0,40}(lag|behind|slow|backlog)|lag|backlog|throughput",
+    "root_cause_specific": {
+      "groups": [
+        "consumer.{0,60}(capacity|throughput|pace|too few|insufficient|not enough|under-?provision|limit|replica)|(replica|consumer).{0,20}(count|number)|parallelism",
+        "traffic|volume|produce rate|producer|surge|spike|load|sale|peak|4x",
+        "autoscal|pre-?scal|scale.{0,15}(ahead|late|delay|slow|in advance)"
+      ],
+      "required": [
+        0
+      ],
+      "min_groups": 2
+    }
+  },
+  "C09": {
+    "pattern_signature": "tls_cert_expired",
+    "service": "auth-service",
+    "expected_incident_ids": [
+      "INC-012"
+    ],
+    "related_incident_ids": [],
+    "prior_occurrences": 1,
+    "expected_occurrence_number": 2,
+    "known_root_causes": {
+      "INC-012": "The TLS certificate for auth.shipfast.example expired; cert-manager's renewal job had been silently failing for 3 weeks due to an expired DNS-01 challenge API token."
+    },
+    "worked_fixes": {
+      "manually_renew_and_deploy_certificate": "renew|rotat.{0,25}(cert|token|credential)|(issue|install|deploy|replace|reissue).{0,25}cert|new cert|cert-manager|certbot"
+    },
+    "failed_fixes": {
+      "restart_auth_pods": "restart.{0,30}(pod|service|auth|instance)|rolling restart|bounce"
+    },
+    "fix_outcomes": {
+      "restart_auth_pods": {
+        "worked": 0,
+        "partial": 0,
+        "failed": 1
+      },
+      "manually_renew_and_deploy_certificate": {
+        "worked": 1,
+        "partial": 0,
+        "failed": 0
+      }
+    },
+    "resolvers_with_worked_fix": [
+      "Emily Chen"
+    ],
+    "primary_resolver": "Emily Chen",
+    "root_cause_generic": "cert(ificate)?.{0,30}expir|expired.{0,30}cert|tls|ssl",
+    "root_cause_specific": {
+      "groups": [
+        "cert-manager|renewal|auto-?renew|renew.{0,30}(fail|broke|stopp|not)|rotation job",
+        "dns-?01|dns challenge|challenge (api )?token|api token|dns api|dns provider"
+      ],
+      "required": [],
+      "min_groups": 2
+    }
+  },
+  "C10": {
+    "pattern_signature": "redis_oom_session_store",
+    "service": "auth-service",
+    "expected_incident_ids": [
+      "INC-019"
+    ],
+    "related_incident_ids": [
+      "INC-003",
+      "INC-008",
+      "INC-015"
+    ],
+    "prior_occurrences": 1,
+    "expected_occurrence_number": 2,
+    "known_root_causes": {
+      "INC-019": "'Remember me' sessions were issued with no TTL cap (some over a year old); accumulated session keys filled the auth-service session Redis instance to its 1GB maxmemory limit."
+    },
+    "worked_fixes": {
+      "flush_expired_and_stale_sessions": "(flush|delete|purge|evict|expire|remove|clear|prune|reclaim).{0,40}(session|stale|expired|old key)"
+    },
+    "failed_fixes": {},
+    "fix_outcomes": {
+      "set_explicit_session_ttl_cap": {
+        "worked": 0,
+        "partial": 1,
+        "failed": 0
+      },
+      "flush_expired_and_stale_sessions": {
+        "worked": 1,
+        "partial": 0,
+        "failed": 0
+      }
+    },
+    "resolvers_with_worked_fix": [
+      "Ananya Iyer"
+    ],
+    "primary_resolver": "Ananya Iyer",
+    "root_cause_generic": "redis.{0,60}(memory|oom|maxmemory|full)|out of memory|maxmemory|session.{0,20}(store|redis)",
+    "root_cause_specific": {
+      "groups": [
+        "remember[- ]?me|ttl cap|uncapped|no (explicit )?ttl|without (a |an )?(ttl|expir)|never expir|no expir|unbounded ttl|long-?lived",
+        "accumulat|stale|old(er)? sessions|unbounded|grew|growth|(session )?keys? (grow|build|pile)"
+      ],
+      "required": [
+        0
+      ],
+      "min_groups": 2
+    }
+  },
+  "C11": {
+    "pattern_signature": "k8s_oom_killed_memory_leak",
+    "service": "order-worker",
+    "expected_incident_ids": [
+      "INC-016"
+    ],
+    "related_incident_ids": [],
+    "prior_occurrences": 1,
+    "expected_occurrence_number": 2,
+    "known_root_causes": {
+      "INC-016": "A newly upgraded image-resize library (v4.2.0) leaks native memory buffers on each thumbnail generation call, growing pod RSS until the kubelet OOM-kills the container."
+    },
+    "worked_fixes": {
+      "rollback_image_resize_library_version": "(roll ?back|revert|pin|downgrad).{0,50}(librar|resize|dependenc|version|image|thumbnail|package)|previous (library|version|dependency)"
+    },
+    "failed_fixes": {},
+    "fix_outcomes": {
+      "rollback_image_resize_library_version": {
+        "worked": 1,
+        "partial": 0,
+        "failed": 0
+      }
+    },
+    "resolvers_with_worked_fix": [
+      "David Kim"
+    ],
+    "primary_resolver": "David Kim",
+    "root_cause_generic": "oom.?kill|memory.{0,30}(leak|growth|exceed|limit)|out of memory",
+    "root_cause_specific": {
+      "groups": [
+        "leak",
+        "librar|dependenc|resize|thumbnail|native (memory|buffer)|image[- ]?(resize|process)"
+      ],
+      "required": [
+        0
+      ],
+      "min_groups": 2
+    }
+  },
+  "C12": {
+    "pattern_signature": "search_slow_query_missing_index",
+    "service": "search-api",
+    "expected_incident_ids": [
+      "INC-001"
+    ],
+    "related_incident_ids": [],
+    "prior_occurrences": 1,
+    "expected_occurrence_number": 2,
+    "known_root_causes": {
+      "INC-001": "The catalog-v2 OpenSearch mapping migration removed the category_id keyword sub-field; term-filter queries fell back to scripted filtering across the entire index."
+    },
+    "worked_fixes": {
+      "reindex_with_keyword_subfield_restored": "reindex|re-index|keyword sub-?field|restore.{0,30}(mapping|field)|(fix|correct|add).{0,20}mapping"
+    },
+    "failed_fixes": {},
+    "fix_outcomes": {
+      "reindex_with_keyword_subfield_restored": {
+        "worked": 1,
+        "partial": 0,
+        "failed": 0
+      }
+    },
+    "resolvers_with_worked_fix": [
+      "Sofia Martinez"
+    ],
+    "primary_resolver": "Sofia Martinez",
+    "root_cause_generic": "(slow|latency).{0,40}(query|search)|mapping|index",
+    "root_cause_specific": {
+      "groups": [
+        "keyword|sub-?field|not[- ]analy[sz]ed|\\.raw|exact-?match field|multi-?field",
+        "mapping",
+        "script|scripted|full[- ]?(index )?scan|fallback|term filter|filter.{0,20}(field|removed|missing)"
+      ],
+      "required": [
+        0
+      ],
+      "min_groups": 2
+    }
+  },
+  "C13": {
+    "pattern_signature": "opensearch_shard_allocation_failed",
+    "service": "search-api",
+    "expected_incident_ids": [
+      "INC-007"
+    ],
+    "related_incident_ids": [],
+    "prior_occurrences": 1,
+    "expected_occurrence_number": 2,
+    "known_root_causes": {
+      "INC-007": "Shard allocation for 6 primary shards failed to auto-reassign after the node restart because the allocation retry limit (5) had already been exhausted from a prior transient failure."
+    },
+    "worked_fixes": {
+      "reroute_unassigned_shards": "reroute|retry_failed|allocation.{0,20}retry|retry.{0,20}allocation"
+    },
+    "failed_fixes": {},
+    "fix_outcomes": {
+      "reroute_unassigned_shards": {
+        "worked": 1,
+        "partial": 0,
+        "failed": 0
+      }
+    },
+    "resolvers_with_worked_fix": [
+      "Sofia Martinez"
+    ],
+    "primary_resolver": "Sofia Martinez",
+    "root_cause_generic": "shard|unassigned|cluster.{0,20}red|allocation",
+    "root_cause_specific": {
+      "groups": [
+        "retr(y|ies).{0,40}(exhaust|limit|max)|max_retries|allocation retry|retry limit|retries? (were |was )?exhaust",
+        "transient|prior failure|earlier failure|previous(ly)? failed"
+      ],
+      "required": [
+        0
+      ],
+      "min_groups": 1
+    }
+  },
+  "C14": {
+    "pattern_signature": "bad_feature_flag_regression",
+    "service": "search-api",
+    "expected_incident_ids": [
+      "INC-014"
+    ],
+    "related_incident_ids": [],
+    "prior_occurrences": 1,
+    "expected_occurrence_number": 2,
+    "known_root_causes": {
+      "INC-014": "The fuzzy_search_v2 flag enables expensive Levenshtein-distance matching across the full catalog index for every query; at 100% rollout this exceeded the query-executor's 30s timeout under normal traffic."
+    },
+    "worked_fixes": {
+      "disable_feature_flag": "(disabl|turn(ing)? off|flip.{0,10}off|kill).{0,40}(flag|feature|toggle|rerank|rollout)|(roll ?back|reduc|lower|revert).{0,25}(flag|rollout|percent)|flag.{0,30}(off|0%)"
+    },
+    "failed_fixes": {},
+    "fix_outcomes": {
+      "disable_feature_flag": {
+        "worked": 1,
+        "partial": 0,
+        "failed": 0
+      }
+    },
+    "resolvers_with_worked_fix": [
+      "Sofia Martinez"
+    ],
+    "primary_resolver": "Sofia Martinez",
+    "root_cause_generic": "flag|rollout|feature",
+    "root_cause_specific": {
+      "groups": [
+        "flag|rollout|feature",
+        "expens|heavy|costly|compute|cpu|overload|timeout|latency budget|30\\s?s|slow(er)? (query|path|code)"
+      ],
+      "required": [
+        0
+      ],
+      "min_groups": 2
+    }
+  },
+  "C15": {
+    "pattern_signature": "webhook_signature_mismatch",
+    "service": "payments-api",
+    "expected_incident_ids": [
+      "INC-013"
+    ],
+    "related_incident_ids": [],
+    "prior_occurrences": 1,
+    "expected_occurrence_number": 2,
+    "known_root_causes": {
+      "INC-013": "The upstream payment gateway rotated its webhook signing secret as part of a scheduled security rotation; payments-api was still validating against the old secret cached in config."
+    },
+    "worked_fixes": {
+      "update_webhook_secret_from_vault": "(updat|rotat|refresh|pull|fetch|sync|replac|load).{0,40}(secret|signing|webhook key|vault)"
+    },
+    "failed_fixes": {},
+    "fix_outcomes": {
+      "update_webhook_secret_from_vault": {
+        "worked": 1,
+        "partial": 0,
+        "failed": 0
+      }
+    },
+    "resolvers_with_worked_fix": [
+      "Priya Nair"
+    ],
+    "primary_resolver": "Priya Nair",
+    "root_cause_generic": "signature|webhook|secret",
+    "root_cause_specific": {
+      "groups": [
+        "rotat",
+        "old secret|stale|cached|outdated|previous secret|still (validating|using|verifying)|not (been )?updated"
+      ],
+      "required": [
+        0,
+        1
+      ],
+      "min_groups": 2
+    }
+  }
+}

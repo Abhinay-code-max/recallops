@@ -1,0 +1,97 @@
+{
+  "event_number": 1,
+  "request_sent_at_utc": "2026-09-29T06:25:39.824194Z",
+  "response_received_at_utc": "2026-09-29T06:25:43.068842Z",
+  "timestamp_note": "The route timestamps Hindsight retention internally; the API does not return that value. These exact client timestamps bound the server-side event.",
+  "request": {
+    "incident_id": "INC-023",
+    "fix_type": "kill_idle_db_connections",
+    "outcome": "worked",
+    "notes": "Engineer observed that terminating idle leaked sessions restored checkout capacity for this recurrence."
+  },
+  "response": {
+    "ranked_fixes": [
+      {
+        "rank": 1,
+        "fix_type": "kill_idle_db_connections",
+        "label": "Kill idle db connections",
+        "score": 0.7,
+        "similarity": 1.0,
+        "worked": 2,
+        "partial": 1,
+        "failed": 0,
+        "attempts": 3,
+        "recent_failures": 0,
+        "last_used_incident_id": "INC-023"
+      },
+      {
+        "rank": 2,
+        "fix_type": "increase_postgres_pool_size",
+        "label": "Increase postgres pool size",
+        "score": 0.6599,
+        "similarity": 0.8249,
+        "worked": 3,
+        "partial": 0,
+        "failed": 0,
+        "attempts": 3,
+        "recent_failures": 0,
+        "last_used_incident_id": "INC-021"
+      },
+      {
+        "rank": 3,
+        "fix_type": "restart_payments_pods",
+        "label": "Restart payments pods",
+        "score": 0.4125,
+        "similarity": 0.8249,
+        "worked": 0,
+        "partial": 1,
+        "failed": 0,
+        "attempts": 1,
+        "recent_failures": 0,
+        "last_used_incident_id": "INC-002"
+      },
+      {
+        "rank": 4,
+        "fix_type": "rollback_to_previous_deploy",
+        "label": "Rollback to previous deploy",
+        "score": 0.2062,
+        "similarity": 0.8249,
+        "worked": 0,
+        "partial": 0,
+        "failed": 2,
+        "attempts": 2,
+        "recent_failures": 0,
+        "last_used_incident_id": "INC-017"
+      }
+    ],
+    "warnings": [
+      {
+        "kind": "failed_fix",
+        "message": "Rollback to previous deploy failed 2 of 2 time(s) for this pattern -- try another fix first.",
+        "incident_ids": [
+          "INC-002",
+          "INC-017"
+        ]
+      },
+      {
+        "kind": "recurrence",
+        "message": "This is occurrence #6 of this pattern, recurring roughly every 29.8 days. The permanent fix from INC-021 is still open.",
+        "incident_ids": [
+          "INC-002",
+          "INC-009",
+          "INC-017",
+          "INC-021",
+          "INC-023"
+        ]
+      },
+      {
+        "kind": "open_permanent_fix",
+        "message": "The permanent fix for this pattern (raised in INC-021's postmortem) is still open.",
+        "incident_ids": [
+          "INC-021"
+        ]
+      }
+    ],
+    "memories_stored": 1
+  }
+}

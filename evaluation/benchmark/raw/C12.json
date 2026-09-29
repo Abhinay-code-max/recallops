@@ -1,0 +1,168 @@
+{
+  "case_id": "C12",
+  "alert": {
+    "title": "Product listing search suddenly slow after the index mapping migration",
+    "service": "search-api",
+    "severity": "SEV3",
+    "submitted_at": "2026-09-28T09:20:00Z",
+    "symptoms": "p95 latency for /search/products went from about 110ms to 2.1s right after the catalog mapping migration finished; category pages time out intermittently.",
+    "error_message": "slow_query on catalog index: filter falling back to script_score",
+    "log_snippet": "2026-09-28T09:20:00Z WARN search-api [query-executor] slow_query index=catalog-v3 duration_ms=2144 filter=brand_id:null fallback=script_score\np95_latency=2100ms error_rate=1.5%"
+  },
+  "A": {
+    "ok": true,
+    "degraded": false,
+    "model_used": "openai/gpt-oss-120b",
+    "latency_s": 4.467,
+    "response": {
+      "root_cause": "Recent catalog index mapping migration introduced incompatible field types causing filters to fall back to script_score, leading to slow queries.",
+      "blast_radius": "Search API product and category endpoints experience high latency and timeouts, affecting all users performing product searches.",
+      "first_actions": [
+        "Review the mapping changes applied during the migration and identify fields causing script_score fallback",
+        "Check Elasticsearch slow query logs and profile the /search/products query to pinpoint the bottleneck",
+        "If needed, revert the mapping or reindex the catalog index with correct field types and update queries accordingly"
+      ],
+      "last_fixed_by": null
+    },
+    "raw_text": "{\"root_cause\":\"Recent catalog index mapping migration introduced incompatible field types causing filters to fall back to script_score, leading to slow queries.\",\"blast_radius\":\"Search API product and category endpoints experience high latency and timeouts, affecting all users performing product searches.\",\"first_actions\":[\"Review the mapping changes applied during the migration and identify fields causing script_score fallback\",\"Check Elasticsearch slow query logs and profile the /search/products query to pinpoint the bottleneck\",\"If needed, revert the mapping or reindex the catalog index with correct field types and update queries accordingly\"],\"last_fixed_by\":null}",
+    "llm_calls": [
+      {
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are an incident response assistant writing a short triage briefing for a new alert. You only have the alert below.\nRespond with strict JSON only: {\"root_cause\": string, \"blast_radius\": string, \"first_actions\": [string, string, string], \"last_fixed_by\": string or null}"
+          },
+          {
+            "role": "user",
+            "content": "New alert: Product listing search suddenly slow after the index mapping migration. Service: search-api, severity: SEV3.\nSymptoms: p95 latency for /search/products went from about 110ms to 2.1s right after the catalog mapping migration finished; category pages time out intermittently.\nError: slow_query on catalog index: filter falling back to script_score"
+          }
+        ],
+        "kwargs": {
+          "json_mode": true
+        },
+        "text": "{\"root_cause\":\"Recent catalog index mapping migration introduced incompatible field types causing filters to fall back to script_score, leading to slow queries.\",\"blast_radius\":\"Search API product and category endpoints experience high latency and timeouts, affecting all users performing product searches.\",\"first_actions\":[\"Review the mapping changes applied during the migration and identify fields causing script_score fallback\",\"Check Elasticsearch slow query logs and profile the /search/products query to pinpoint the bottleneck\",\"If needed, revert the mapping or reindex the catalog index with correct field types and update queries accordingly\"],\"last_fixed_by\":null}",
+        "degraded": false,
+        "model_used": "openai/gpt-oss-120b",
+        "parsed": {
+          "root_cause": "Recent catalog index mapping migration introduced incompatible field types causing filters to fall back to script_score, leading to slow queries.",
+          "blast_radius": "Search API product and category endpoints experience high latency and timeouts, affecting all users performing product searches.",
+          "first_actions": [
+            "Review the mapping changes applied during the migration and identify fields causing script_score fallback",
+            "Check Elasticsearch slow query logs and profile the /search/products query to pinpoint the bottleneck",
+            "If needed, revert the mapping or reindex the catalog index with correct field types and update queries accordingly"
+          ],
+          "last_fixed_by": null
+        },
+        "seconds": 4.467
+      }
+    ]
+  },
+  "B": {
+    "ok": true,
+    "degraded": false,
+    "degraded_reason": null,
+    "path": "generate_sections",
+    "template_fallback": false,
+    "latency_s": 8.988,
+    "analysis_latency_s": 2.118,
+    "models_used": [
+      "openai/gpt-oss-120b"
+    ],
+    "response": {
+      "root_cause": "The catalog-v2 OpenSearch mapping migration removed the category_id keyword sub\u2011field, causing term\u2011filter queries to fall back to scripted scoring across the entire index (see INC-001).",
+      "blast_radius": "All product\u2011search requests experience dramatically higher latency (p95 ~2\u202fs) and category pages intermittently time out, impacting shopper experience and conversion across the entire storefront.",
+      "first_actions": [
+        "reindex_with_keyword_subfield_restored",
+        "validate_mapping_and_test_term_filters",
+        "monitor_search_latency_post_deployment"
+      ],
+      "last_fixed_by": "Sofia Martinez"
+    },
+    "cited_incident_ids": [
+      "INC-001"
+    ],
+    "structured": {
+      "memory_state": "matched",
+      "evidence": [
+        {
+          "incident_id": "INC-001",
+          "date": "2026-05-12T09:14:22Z",
+          "relative": "4 months ago",
+          "service": "search-api",
+          "severity": "SEV3",
+          "excerpt": "p95 latency for /search/products jumped from 120ms to 2.4s after the catalog-v2 OpenSearch mapping migration; timeouts on the product listing page.",
+          "relevance": 1.0,
+          "source_bank": "incidents"
+        }
+      ],
+      "ranked_fixes": [
+        {
+          "rank": 1,
+          "fix_type": "reindex_with_keyword_subfield_restored",
+          "label": "Reindex with keyword subfield restored",
+          "score": 0.6667,
+          "similarity": 1.0,
+          "worked": 1,
+          "partial": 0,
+          "failed": 0,
+          "attempts": 1,
+          "recent_failures": 0,
+          "last_used_incident_id": "INC-001"
+        }
+      ],
+      "warnings": [
+        {
+          "kind": "recurrence",
+          "message": "This is occurrence #2 of this pattern.",
+          "incident_ids": [
+            "INC-001"
+          ]
+        }
+      ],
+      "team_hint": {
+        "person": "Sofia Martinez",
+        "reason": "Resolved 1 incident matching this pattern with a working fix.",
+        "incident_ids": [
+          "INC-001"
+        ]
+      },
+      "recurrence": {
+        "occurrence_number": 2,
+        "interval_days_avg": null,
+        "open_permanent_fix_incident_id": null,
+        "message": "This is occurrence #2 of this pattern."
+      }
+    },
+    "llm_calls": [
+      {
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are an incident response assistant writing a short triage briefing. Use ONLY the evidence incidents listed below. You may reference an incident ID (like INC-002) ONLY if it appears in that evidence list -- never invent or cite any other incident ID, and never make one up.\nRULES:\n  1. first_actions[0] MUST recommend the top-ranked fix: 'reindex_with_keyword_subfield_restored'.\n  2. No first_action may recommend any fix whose ledger failures exceed its successes.\n  3. Cite at least one evidence incident ID somewhere in root_cause or first_actions.\nRespond with strict JSON only: {\"root_cause\": string, \"blast_radius\": string, \"first_actions\": [string, string, string], \"last_fixed_by\": string or null}"
+          },
+          {
+            "role": "user",
+            "content": "New alert: Product listing search suddenly slow after the index mapping migration. Service: search-api, severity: SEV3.\nSymptoms: p95 latency for /search/products went from about 110ms to 2.1s right after the catalog mapping migration finished; category pages time out intermittently.\nError: slow_query on catalog index: filter falling back to script_score\n\nEvidence (only these incidents may be cited):\nIncident INC-001 (search-api, SEV3, 2026-05-12T09:14:22Z):\nSymptoms: p95 latency for /search/products jumped from 120ms to 2.4s after the catalog-v2 OpenSearch mapping migration; timeouts on the product listing page.\nRoot cause: The catalog-v2 OpenSearch mapping migration removed the category_id keyword sub-field; term-filter queries fell back to scripted filtering across the entire index.\nResolver: Sofia Martinez\n\nRanked fixes (use the top one as first_actions[0]):\n  1. reindex_with_keyword_subfield_restored (score=+0.667, worked=1, partial=0, failed=0, recent_failures=0)\nRecurrence: This is occurrence #2 of this pattern.\nTeam expert: Sofia Martinez (Resolved 1 incident matching this pattern with a working fix.)"
+          }
+        ],
+        "kwargs": {
+          "json_mode": true
+        },
+        "text": "{\"root_cause\":\"The catalog-v2 OpenSearch mapping migration removed the category_id keyword sub\u2011field, causing term\u2011filter queries to fall back to scripted scoring across the entire index (see INC-001).\",\"blast_radius\":\"All product\u2011search requests experience dramatically higher latency (p95 ~2\u202fs) and category pages intermittently time out, impacting shopper experience and conversion across the entire storefront.\",\"first_actions\":[\"reindex_with_keyword_subfield_restored\",\"validate_mapping_and_test_term_filters\",\"monitor_search_latency_post_deployment\"],\"last_fixed_by\":\"Sofia Martinez\"}",
+        "degraded": false,
+        "model_used": "openai/gpt-oss-120b",
+        "parsed": {
+          "root_cause": "The catalog-v2 OpenSearch mapping migration removed the category_id keyword sub\u2011field, causing term\u2011filter queries to fall back to scripted scoring across the entire index (see INC-001).",
+          "blast_radius": "All product\u2011search requests experience dramatically higher latency (p95 ~2\u202fs) and category pages intermittently time out, impacting shopper experience and conversion across the entire storefront.",
+          "first_actions": [
+            "reindex_with_keyword_subfield_restored",
+            "validate_mapping_and_test_term_filters",
+            "monitor_search_latency_post_deployment"
+          ],
+          "last_fixed_by": "Sofia Martinez"
+        },
+        "seconds": 6.87
+      }
+    ]
+  }
+}

@@ -1,0 +1,233 @@
+{
+  "case_id": "C03",
+  "alert": {
+    "title": "order-worker degraded Monday morning",
+    "service": "order-worker",
+    "severity": "SEV2",
+    "submitted_at": "2026-09-14T07:11:15Z",
+    "symptoms": "Job throughput on order-worker has dropped sharply since about 07:00 this morning; the processing backlog is growing and the cache layer is reporting it is out of memory.",
+    "error_message": "cache layer out of memory, order-worker service health degraded",
+    "log_snippet": "2026-09-14T07:11:15Z PAGE order-worker service_health=DEGRADED reason=cache_oom\nredis: OOM command not allowed when used memory > 'maxmemory'.\nqueue_backlog=42750 memory_used_pct=99.1%"
+  },
+  "A": {
+    "ok": true,
+    "degraded": false,
+    "model_used": "openai/gpt-oss-120b",
+    "latency_s": 4.405,
+    "response": {
+      "root_cause": "Cache layer out-of-memory causing order-worker slowdown",
+      "blast_radius": "All order processing requests; customers may experience delays or failures in placing orders, affecting downstream fulfillment services",
+      "first_actions": [
+        "Check cache memory usage and logs for OOM events",
+        "Restart or scale the cache service to free memory",
+        "Monitor order-worker throughput and backlog after cache remediation"
+      ],
+      "last_fixed_by": null
+    },
+    "raw_text": "{\"root_cause\":\"Cache layer out-of-memory causing order-worker slowdown\",\"blast_radius\":\"All order processing requests; customers may experience delays or failures in placing orders, affecting downstream fulfillment services\",\"first_actions\":[\"Check cache memory usage and logs for OOM events\",\"Restart or scale the cache service to free memory\",\"Monitor order-worker throughput and backlog after cache remediation\"],\"last_fixed_by\":null}",
+    "llm_calls": [
+      {
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are an incident response assistant writing a short triage briefing for a new alert. You only have the alert below.\nRespond with strict JSON only: {\"root_cause\": string, \"blast_radius\": string, \"first_actions\": [string, string, string], \"last_fixed_by\": string or null}"
+          },
+          {
+            "role": "user",
+            "content": "New alert: order-worker degraded Monday morning. Service: order-worker, severity: SEV2.\nSymptoms: Job throughput on order-worker has dropped sharply since about 07:00 this morning; the processing backlog is growing and the cache layer is reporting it is out of memory.\nError: cache layer out of memory, order-worker service health degraded"
+          }
+        ],
+        "kwargs": {
+          "json_mode": true
+        },
+        "text": "{\"root_cause\":\"Cache layer out-of-memory causing order-worker slowdown\",\"blast_radius\":\"All order processing requests; customers may experience delays or failures in placing orders, affecting downstream fulfillment services\",\"first_actions\":[\"Check cache memory usage and logs for OOM events\",\"Restart or scale the cache service to free memory\",\"Monitor order-worker throughput and backlog after cache remediation\"],\"last_fixed_by\":null}",
+        "degraded": false,
+        "model_used": "openai/gpt-oss-120b",
+        "parsed": {
+          "root_cause": "Cache layer out-of-memory causing order-worker slowdown",
+          "blast_radius": "All order processing requests; customers may experience delays or failures in placing orders, affecting downstream fulfillment services",
+          "first_actions": [
+            "Check cache memory usage and logs for OOM events",
+            "Restart or scale the cache service to free memory",
+            "Monitor order-worker throughput and backlog after cache remediation"
+          ],
+          "last_fixed_by": null
+        },
+        "seconds": 4.405
+      }
+    ]
+  },
+  "B": {
+    "ok": true,
+    "degraded": false,
+    "degraded_reason": null,
+    "path": "generate_sections",
+    "template_fallback": false,
+    "latency_s": 7.242,
+    "analysis_latency_s": 1.446,
+    "models_used": [
+      "openai/gpt-oss-120b"
+    ],
+    "response": {
+      "root_cause": "Redis OOM caused by missing eviction policy and stale idempotency keys accumulating over the weekend (see INC-003).",
+      "blast_radius": "Order-worker job throughput drops, backlog grows, order confirmation emails are delayed, and the cache layer runs out of memory.",
+      "first_actions": [
+        "restart_redis_and_set_eviction_policy",
+        "manual_flush_stale_keys",
+        "add_ttl_to_job_result_keys"
+      ],
+      "last_fixed_by": "Ananya Iyer"
+    },
+    "cited_incident_ids": [
+      "INC-003",
+      "INC-008",
+      "INC-016"
+    ],
+    "structured": {
+      "memory_state": "matched",
+      "evidence": [
+        {
+          "incident_id": "INC-003",
+          "date": "2026-05-18T07:05:41Z",
+          "relative": "3 months ago",
+          "service": "order-worker",
+          "severity": "SEV2",
+          "excerpt": "order-worker job processing stalled Monday morning; Redis returning OOM errors, queue depth past 41k, order confirmation emails delayed.",
+          "relevance": 0.4236,
+          "source_bank": "incidents"
+        },
+        {
+          "incident_id": "INC-008",
+          "date": "2026-06-15T06:58:12Z",
+          "relative": "3 months ago",
+          "service": "order-worker",
+          "severity": "SEV2",
+          "excerpt": "Second Monday-morning Redis OOM in a month; order-worker queue depth past 38k again, same signature as INC-003.",
+          "relevance": 0.2149,
+          "source_bank": "incidents"
+        },
+        {
+          "incident_id": "INC-016",
+          "date": "2026-07-21T17:03:26Z",
+          "relative": "7 weeks ago",
+          "service": "order-worker",
+          "severity": "SEV1",
+          "excerpt": "order-worker pods repeatedly OOMKilled every 20-30 minutes since a deploy 2 hours ago; job processing throughput down 60%.",
+          "relevance": 0.168,
+          "source_bank": "incidents"
+        }
+      ],
+      "ranked_fixes": [
+        {
+          "rank": 1,
+          "fix_type": "restart_redis_and_set_eviction_policy",
+          "label": "Restart redis and set eviction policy",
+          "score": 0.2824,
+          "similarity": 0.4236,
+          "worked": 1,
+          "partial": 0,
+          "failed": 0,
+          "attempts": 1,
+          "recent_failures": 0,
+          "last_used_incident_id": "INC-003"
+        },
+        {
+          "rank": 2,
+          "fix_type": "manual_flush_stale_keys",
+          "label": "Manual flush stale keys",
+          "score": 0.2118,
+          "similarity": 0.4236,
+          "worked": 0,
+          "partial": 2,
+          "failed": 0,
+          "attempts": 2,
+          "recent_failures": 0,
+          "last_used_incident_id": "INC-008"
+        },
+        {
+          "rank": 3,
+          "fix_type": "add_ttl_to_job_result_keys",
+          "label": "Add ttl to job result keys",
+          "score": 0.1433,
+          "similarity": 0.2149,
+          "worked": 1,
+          "partial": 0,
+          "failed": 0,
+          "attempts": 1,
+          "recent_failures": 0,
+          "last_used_incident_id": "INC-008"
+        },
+        {
+          "rank": 4,
+          "fix_type": "fix_ttl_key_prefix_mismatch",
+          "label": "Fix ttl key prefix mismatch",
+          "score": 0.0,
+          "similarity": 0.0,
+          "worked": 1,
+          "partial": 0,
+          "failed": 0,
+          "attempts": 1,
+          "recent_failures": 0,
+          "last_used_incident_id": "INC-015"
+        }
+      ],
+      "warnings": [
+        {
+          "kind": "recurrence",
+          "message": "This is occurrence #4 of this pattern, recurring roughly every 28 days.",
+          "incident_ids": [
+            "INC-003",
+            "INC-008",
+            "INC-015"
+          ]
+        }
+      ],
+      "team_hint": {
+        "person": "Ananya Iyer",
+        "reason": "Resolved 3 incidents matching this pattern with a working fix.",
+        "incident_ids": [
+          "INC-003",
+          "INC-008",
+          "INC-015"
+        ]
+      },
+      "recurrence": {
+        "occurrence_number": 4,
+        "interval_days_avg": 28.0,
+        "open_permanent_fix_incident_id": null,
+        "message": "This is occurrence #4 of this pattern, recurring roughly every 28 days."
+      }
+    },
+    "llm_calls": [
+      {
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are an incident response assistant writing a short triage briefing. Use ONLY the evidence incidents listed below. You may reference an incident ID (like INC-002) ONLY if it appears in that evidence list -- never invent or cite any other incident ID, and never make one up.\nRULES:\n  1. first_actions[0] MUST recommend the top-ranked fix: 'restart_redis_and_set_eviction_policy'.\n  2. No first_action may recommend any fix whose ledger failures exceed its successes.\n  3. Cite at least one evidence incident ID somewhere in root_cause or first_actions.\nRespond with strict JSON only: {\"root_cause\": string, \"blast_radius\": string, \"first_actions\": [string, string, string], \"last_fixed_by\": string or null}"
+          },
+          {
+            "role": "user",
+            "content": "New alert: order-worker degraded Monday morning. Service: order-worker, severity: SEV2.\nSymptoms: Job throughput on order-worker has dropped sharply since about 07:00 this morning; the processing backlog is growing and the cache layer is reporting it is out of memory.\nError: cache layer out of memory, order-worker service health degraded\n\nEvidence (only these incidents may be cited):\nIncident INC-003 (order-worker, SEV2, 2026-05-18T07:05:41Z):\nSymptoms: order-worker job processing stalled Monday morning; Redis returning OOM errors, queue depth past 41k, order confirmation emails delayed.\nRoot cause: Weekend order volume queued jobs and cached idempotency keys in Redis without eviction; by Monday's traffic ramp Redis hit its 2GB maxmemory limit with the default noeviction policy.\nResolver: Ananya Iyer\n\nIncident INC-008 (order-worker, SEV2, 2026-06-15T06:58:12Z):\nSymptoms: Second Monday-morning Redis OOM in a month; order-worker queue depth past 38k again, same signature as INC-003.\nRoot cause: The allkeys-lru eviction policy set after INC-003 slowed the OOM but idempotency keys from the order-retry-queue still have no TTL, so memory pressure builds back up over the weekend.\nResolver: Ananya Iyer\n\nIncident INC-016 (order-worker, SEV1, 2026-07-21T17:03:26Z):\nSymptoms: order-worker pods repeatedly OOMKilled every 20-30 minutes since a deploy 2 hours ago; job processing throughput down 60%.\nRoot cause: A newly upgraded image-resize library (v4.2.0) leaks native memory buffers on each thumbnail generation call, growing pod RSS until the kubelet OOM-kills the container.\nResolver: David Kim\n\nRanked fixes (use the top one as first_actions[0]):\n  1. restart_redis_and_set_eviction_policy (score=+0.282, worked=1, partial=0, failed=0, recent_failures=0)\n  2. manual_flush_stale_keys (score=+0.212, worked=0, partial=2, failed=0, recent_failures=0)\n  3. add_ttl_to_job_result_keys (score=+0.143, worked=1, partial=0, failed=0, recent_failures=0)\n  4. fix_ttl_key_prefix_mismatch (score=+0.000, worked=1, partial=0, failed=0, recent_failures=0)\nRecurrence: This is occurrence #4 of this pattern, recurring roughly every 28 days.\nTeam expert: Ananya Iyer (Resolved 3 incidents matching this pattern with a working fix.)"
+          }
+        ],
+        "kwargs": {
+          "json_mode": true
+        },
+        "text": "{\"root_cause\":\"Redis OOM caused by missing eviction policy and stale idempotency keys accumulating over the weekend (see INC-003).\",\"blast_radius\":\"Order-worker job throughput drops, backlog grows, order confirmation emails are delayed, and the cache layer runs out of memory.\",\"first_actions\":[\"restart_redis_and_set_eviction_policy\",\"manual_flush_stale_keys\",\"add_ttl_to_job_result_keys\"],\"last_fixed_by\":\"Ananya Iyer\"}",
+        "degraded": false,
+        "model_used": "openai/gpt-oss-120b",
+        "parsed": {
+          "root_cause": "Redis OOM caused by missing eviction policy and stale idempotency keys accumulating over the weekend (see INC-003).",
+          "blast_radius": "Order-worker job throughput drops, backlog grows, order confirmation emails are delayed, and the cache layer runs out of memory.",
+          "first_actions": [
+            "restart_redis_and_set_eviction_policy",
+            "manual_flush_stale_keys",
+            "add_ttl_to_job_result_keys"
+          ],
+          "last_fixed_by": "Ananya Iyer"
+        },
+        "seconds": 5.796
+      }
+    ]
+  }
+}

@@ -1,0 +1,168 @@
+{
+  "case_id": "C14",
+  "alert": {
+    "title": "Search timeouts and errors spiked once a new ranking flag reached full rollout",
+    "service": "search-api",
+    "severity": "SEV2",
+    "submitted_at": "2026-09-28T11:15:00Z",
+    "symptoms": "Right after the enable_semantic_rerank flag was ramped to 100%, search p99 latency exceeded 25s and error rate hit about 38%; traffic levels are normal.",
+    "error_message": "query-executor timeout while feature flag enable_semantic_rerank is active",
+    "log_snippet": "2026-09-28T11:15:00Z ERROR search-api [query-executor] feature_flag=enable_semantic_rerank timeout after 30000ms\np99_latency=25800ms error_rate=38.4% flag_rollout=100%"
+  },
+  "A": {
+    "ok": true,
+    "degraded": false,
+    "model_used": "openai/gpt-oss-120b",
+    "latency_s": 4.403,
+    "response": {
+      "root_cause": "The enable_semantic_rerank flag introduced a regression in the ranking algorithm causing query executor timeouts, which spiked search latency and errors.",
+      "blast_radius": "All search-api requests for all users experience elevated latency and failures, degrading the search experience platform\u2011wide.",
+      "first_actions": [
+        "Roll back or reduce the enable_semantic_rerank flag rollout to a safe percentage",
+        "Collect and examine query\u2011executor timeout logs and stack traces to pinpoint the regression",
+        "Increase monitoring of search latency and error rates and set alerts for further spikes"
+      ],
+      "last_fixed_by": null
+    },
+    "raw_text": "{\"root_cause\":\"The enable_semantic_rerank flag introduced a regression in the ranking algorithm causing query executor timeouts, which spiked search latency and errors.\",\"blast_radius\":\"All search-api requests for all users experience elevated latency and failures, degrading the search experience platform\u2011wide.\",\"first_actions\":[\"Roll back or reduce the enable_semantic_rerank flag rollout to a safe percentage\",\"Collect and examine query\u2011executor timeout logs and stack traces to pinpoint the regression\",\"Increase monitoring of search latency and error rates and set alerts for further spikes\"],\"last_fixed_by\":null}",
+    "llm_calls": [
+      {
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are an incident response assistant writing a short triage briefing for a new alert. You only have the alert below.\nRespond with strict JSON only: {\"root_cause\": string, \"blast_radius\": string, \"first_actions\": [string, string, string], \"last_fixed_by\": string or null}"
+          },
+          {
+            "role": "user",
+            "content": "New alert: Search timeouts and errors spiked once a new ranking flag reached full rollout. Service: search-api, severity: SEV2.\nSymptoms: Right after the enable_semantic_rerank flag was ramped to 100%, search p99 latency exceeded 25s and error rate hit about 38%; traffic levels are normal.\nError: query-executor timeout while feature flag enable_semantic_rerank is active"
+          }
+        ],
+        "kwargs": {
+          "json_mode": true
+        },
+        "text": "{\"root_cause\":\"The enable_semantic_rerank flag introduced a regression in the ranking algorithm causing query executor timeouts, which spiked search latency and errors.\",\"blast_radius\":\"All search-api requests for all users experience elevated latency and failures, degrading the search experience platform\u2011wide.\",\"first_actions\":[\"Roll back or reduce the enable_semantic_rerank flag rollout to a safe percentage\",\"Collect and examine query\u2011executor timeout logs and stack traces to pinpoint the regression\",\"Increase monitoring of search latency and error rates and set alerts for further spikes\"],\"last_fixed_by\":null}",
+        "degraded": false,
+        "model_used": "openai/gpt-oss-120b",
+        "parsed": {
+          "root_cause": "The enable_semantic_rerank flag introduced a regression in the ranking algorithm causing query executor timeouts, which spiked search latency and errors.",
+          "blast_radius": "All search-api requests for all users experience elevated latency and failures, degrading the search experience platform\u2011wide.",
+          "first_actions": [
+            "Roll back or reduce the enable_semantic_rerank flag rollout to a safe percentage",
+            "Collect and examine query\u2011executor timeout logs and stack traces to pinpoint the regression",
+            "Increase monitoring of search latency and error rates and set alerts for further spikes"
+          ],
+          "last_fixed_by": null
+        },
+        "seconds": 4.403
+      }
+    ]
+  },
+  "B": {
+    "ok": true,
+    "degraded": false,
+    "degraded_reason": null,
+    "path": "generate_sections",
+    "template_fallback": false,
+    "latency_s": 7.231,
+    "analysis_latency_s": 1.636,
+    "models_used": [
+      "openai/gpt-oss-120b"
+    ],
+    "response": {
+      "root_cause": "The enable_semantic_rerank flag triggers heavyweight ranking calculations that exceed the query\u2011executor's 30s timeout, similar to the issue documented in INC-014 where a feature flag caused massive latency spikes.",
+      "blast_radius": "All search\u2011API queries for every user experience extreme latency and errors, potentially impacting the entire user base and downstream services that rely on search results.",
+      "first_actions": [
+        "disable_feature_flag",
+        "increase_query_timeout",
+        "monitor_error_rate"
+      ],
+      "last_fixed_by": "Sofia Martinez"
+    },
+    "cited_incident_ids": [
+      "INC-014"
+    ],
+    "structured": {
+      "memory_state": "matched",
+      "evidence": [
+        {
+          "incident_id": "INC-014",
+          "date": "2026-07-08T10:52:09Z",
+          "relative": "2 months ago",
+          "service": "search-api",
+          "severity": "SEV2",
+          "excerpt": "search-api p99 latency jumped to 31.2s and error rate to 41% immediately after the enable_fuzzy_search_v2 flag hit 100% rollout.",
+          "relevance": 1.0,
+          "source_bank": "incidents"
+        }
+      ],
+      "ranked_fixes": [
+        {
+          "rank": 1,
+          "fix_type": "disable_feature_flag",
+          "label": "Disable feature flag",
+          "score": 0.6667,
+          "similarity": 1.0,
+          "worked": 1,
+          "partial": 0,
+          "failed": 0,
+          "attempts": 1,
+          "recent_failures": 0,
+          "last_used_incident_id": "INC-014"
+        }
+      ],
+      "warnings": [
+        {
+          "kind": "recurrence",
+          "message": "This is occurrence #2 of this pattern.",
+          "incident_ids": [
+            "INC-014"
+          ]
+        }
+      ],
+      "team_hint": {
+        "person": "Sofia Martinez",
+        "reason": "Resolved 1 incident matching this pattern with a working fix.",
+        "incident_ids": [
+          "INC-014"
+        ]
+      },
+      "recurrence": {
+        "occurrence_number": 2,
+        "interval_days_avg": null,
+        "open_permanent_fix_incident_id": null,
+        "message": "This is occurrence #2 of this pattern."
+      }
+    },
+    "llm_calls": [
+      {
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are an incident response assistant writing a short triage briefing. Use ONLY the evidence incidents listed below. You may reference an incident ID (like INC-002) ONLY if it appears in that evidence list -- never invent or cite any other incident ID, and never make one up.\nRULES:\n  1. first_actions[0] MUST recommend the top-ranked fix: 'disable_feature_flag'.\n  2. No first_action may recommend any fix whose ledger failures exceed its successes.\n  3. Cite at least one evidence incident ID somewhere in root_cause or first_actions.\nRespond with strict JSON only: {\"root_cause\": string, \"blast_radius\": string, \"first_actions\": [string, string, string], \"last_fixed_by\": string or null}"
+          },
+          {
+            "role": "user",
+            "content": "New alert: Search timeouts and errors spiked once a new ranking flag reached full rollout. Service: search-api, severity: SEV2.\nSymptoms: Right after the enable_semantic_rerank flag was ramped to 100%, search p99 latency exceeded 25s and error rate hit about 38%; traffic levels are normal.\nError: query-executor timeout while feature flag enable_semantic_rerank is active\n\nEvidence (only these incidents may be cited):\nIncident INC-014 (search-api, SEV2, 2026-07-08T10:52:09Z):\nSymptoms: search-api p99 latency jumped to 31.2s and error rate to 41% immediately after the enable_fuzzy_search_v2 flag hit 100% rollout.\nRoot cause: The fuzzy_search_v2 flag enables expensive Levenshtein-distance matching across the full catalog index for every query; at 100% rollout this exceeded the query-executor's 30s timeout under normal traffic.\nResolver: Sofia Martinez\n\nRanked fixes (use the top one as first_actions[0]):\n  1. disable_feature_flag (score=+0.667, worked=1, partial=0, failed=0, recent_failures=0)\nRecurrence: This is occurrence #2 of this pattern.\nTeam expert: Sofia Martinez (Resolved 1 incident matching this pattern with a working fix.)"
+          }
+        ],
+        "kwargs": {
+          "json_mode": true
+        },
+        "text": "{\"root_cause\":\"The enable_semantic_rerank flag triggers heavyweight ranking calculations that exceed the query\u2011executor's 30s timeout, similar to the issue documented in INC-014 where a feature flag caused massive latency spikes.\",\"blast_radius\":\"All search\u2011API queries for every user experience extreme latency and errors, potentially impacting the entire user base and downstream services that rely on search results.\",\"first_actions\":[\"disable_feature_flag\",\"increase_query_timeout\",\"monitor_error_rate\"],\"last_fixed_by\":\"Sofia Martinez\"}",
+        "degraded": false,
+        "model_used": "openai/gpt-oss-120b",
+        "parsed": {
+          "root_cause": "The enable_semantic_rerank flag triggers heavyweight ranking calculations that exceed the query\u2011executor's 30s timeout, similar to the issue documented in INC-014 where a feature flag caused massive latency spikes.",
+          "blast_radius": "All search\u2011API queries for every user experience extreme latency and errors, potentially impacting the entire user base and downstream services that rely on search results.",
+          "first_actions": [
+            "disable_feature_flag",
+            "increase_query_timeout",
+            "monitor_error_rate"
+          ],
+          "last_fixed_by": "Sofia Martinez"
+        },
+        "seconds": 5.594
+      }
+    ]
+  }
+}

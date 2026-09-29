@@ -1,0 +1,227 @@
+[
+  {
+    "case_id": "C01",
+    "source": "backend/data/demo_alerts.json:DEMO-1",
+    "demo_tuned": true,
+    "pattern_signature": "postgres_pool_exhaustion",
+    "alert": {
+      "title": "Checkout errors spiking after Friday deploy",
+      "service": "payments-api",
+      "severity": "SEV1",
+      "submitted_at": "2026-09-11T15:02:00Z",
+      "symptoms": "Checkout requests failing with database connection errors; p99 latency 4.9s, error rate 25%, starting about 10 minutes after the v2.6.0 Friday deploy.",
+      "error_message": "org.postgresql.util.PSQLException: FATAL: remaining connection slots are reserved for non-replication superuser connections",
+      "log_snippet": "2026-09-11T15:02:00Z ERROR payments-api [pool-2] org.postgresql.util.PSQLException: FATAL: remaining connection slots are reserved for non-replication superuser connections\np99_latency=4910ms error_rate=25.0% deploy=v2.6.0 (10 min ago)"
+    }
+  },
+  {
+    "case_id": "C02",
+    "source": "backend/data/demo_alerts.json:DEMO-2",
+    "demo_tuned": true,
+    "pattern_signature": "postgres_pool_exhaustion",
+    "alert": {
+      "title": "Checkout errors again after the next Friday deploy",
+      "service": "payments-api",
+      "severity": "SEV1",
+      "submitted_at": "2026-09-18T14:47:00Z",
+      "symptoms": "Same connection-pool-exhaustion signature as the prior four incidents; on-call is about to try rolling back the deploy.",
+      "error_message": "org.postgresql.util.PSQLException: FATAL: remaining connection slots are reserved for non-replication superuser connections",
+      "log_snippet": "2026-09-18T14:47:00Z ERROR payments-api [pool-2] org.postgresql.util.PSQLException: FATAL: remaining connection slots are reserved for non-replication superuser connections\np99_latency=4780ms error_rate=23.9% deploy=v2.6.1 (7 min ago)"
+    }
+  },
+  {
+    "case_id": "C03",
+    "source": "backend/data/demo_alerts.json:DEMO-3",
+    "demo_tuned": true,
+    "pattern_signature": "redis_oom",
+    "alert": {
+      "title": "order-worker degraded Monday morning",
+      "service": "order-worker",
+      "severity": "SEV2",
+      "submitted_at": "2026-09-14T07:11:15Z",
+      "symptoms": "Job throughput on order-worker has dropped sharply since about 07:00 this morning; the processing backlog is growing and the cache layer is reporting it is out of memory.",
+      "error_message": "cache layer out of memory, order-worker service health degraded",
+      "log_snippet": "2026-09-14T07:11:15Z PAGE order-worker service_health=DEGRADED reason=cache_oom\nredis: OOM command not allowed when used memory > 'maxmemory'.\nqueue_backlog=42750 memory_used_pct=99.1%"
+    }
+  },
+  {
+    "case_id": "C04",
+    "source": "backend/data/demo_alerts.json:DEMO-4",
+    "demo_tuned": true,
+    "pattern_signature": "kafka_consumer_lag",
+    "alert": {
+      "title": "order-worker falling behind during Diwali Dhamaka Sale",
+      "service": "order-worker",
+      "severity": "SEV1",
+      "submitted_at": "2026-09-16T11:31:40Z",
+      "symptoms": "Orders are taking much longer than usual to move from 'placed' to 'confirmed' since the Diwali Dhamaka Sale kicked off a few minutes ago; the order pipeline looks like it's falling behind the incoming volume.",
+      "error_message": "order-processing consumer group falling behind on the order-events topic",
+      "log_snippet": "2026-09-16T11:31:40Z PAGE order-worker service_health=DEGRADED reason=consumer_backlog\nkafka: consumer group order-processing falling behind on topic order-events (partition 5)\nbacklog_messages=19870 processing_rate_msgs_sec=540 required_rate_msgs_sec=1500"
+    }
+  },
+  {
+    "case_id": "C05",
+    "source": "backend/data/demo_alerts.json:DEMO-5",
+    "demo_tuned": true,
+    "pattern_signature": "postgres_pool_exhaustion",
+    "alert": {
+      "title": "Recurring checkout errors after a Friday deploy",
+      "service": "payments-api",
+      "severity": "SEV1",
+      "submitted_at": "2026-09-25T15:21:44Z",
+      "symptoms": "Checkout error rate has spiked again shortly after today's Friday deploy, with the same connection-pool-exhaustion signature payments-api has shown after previous Friday deploys.",
+      "error_message": "payments-api reporting critical service health, database pool exhausted",
+      "log_snippet": "2026-09-25T15:21:44Z PAGE payments-api service_health=CRITICAL reason=db_pool_exhausted\npostgres: FATAL: remaining connection slots are reserved for non-replication superuser connections\npool_utilization_pct=100.0% checkout_error_rate=26.3% deploy=v2.6.2 (9 min ago)"
+    }
+  },
+  {
+    "case_id": "C06",
+    "source": "authored new occurrence of seeded pattern (see build_data.py)",
+    "demo_tuned": false,
+    "pattern_signature": "postgres_pool_exhaustion",
+    "alert": {
+      "title": "Payment confirmations timing out right after the v2.6.3 release",
+      "service": "payments-api",
+      "severity": "SEV1",
+      "submitted_at": "2026-09-27T15:12:00Z",
+      "symptoms": "Since about 12 minutes after the v2.6.3 Friday-afternoon release, payment confirmation calls are timing out and roughly 21% of checkout attempts fail; the API pods are up but requests queue for the database.",
+      "error_message": "HikariPool-1 - Connection is not available, request timed out after 30000ms",
+      "log_snippet": "2026-09-27T15:12:00Z ERROR payments-api [checkout] HikariPool-1 - Connection is not available, request timed out after 30000ms\nactive=20 idle=0 waiting=57 deploy=v2.6.3 (12 min ago)"
+    }
+  },
+  {
+    "case_id": "C07",
+    "source": "authored new occurrence of seeded pattern (see build_data.py)",
+    "demo_tuned": false,
+    "pattern_signature": "redis_oom",
+    "alert": {
+      "title": "Background jobs stalling because Redis keeps refusing writes",
+      "service": "order-worker",
+      "severity": "SEV2",
+      "submitted_at": "2026-09-28T06:41:00Z",
+      "symptoms": "Order-worker jobs are piling up (backlog over 39k) and Redis is rejecting new writes; memory sits near its limit even though the eviction policy was tuned in the past. Delayed order emails are being reported by support.",
+      "error_message": "OOM command not allowed when used memory > 'maxmemory'",
+      "log_snippet": "2026-09-28T06:41:00Z ERROR order-worker [redis-client] OOM command not allowed when used memory > 'maxmemory'.\nredis_used_memory_pct=99.0% queue_depth=39210 maxmemory_policy=allkeys-lru"
+    }
+  },
+  {
+    "case_id": "C08",
+    "source": "authored new occurrence of seeded pattern (see build_data.py)",
+    "demo_tuned": false,
+    "pattern_signature": "kafka_consumer_lag",
+    "alert": {
+      "title": "Order status updates lagging behind purchases during the midnight flash drop",
+      "service": "order-worker",
+      "severity": "SEV1",
+      "submitted_at": "2026-09-28T20:05:00Z",
+      "symptoms": "The flash drop started minutes ago and confirmations are arriving 15+ minutes late; the order-events consumer group cannot keep up with the publish rate. The on-call is considering adding partitions to the order-events topic right now.",
+      "error_message": "consumer group order-processing lag increasing on topic order-events",
+      "log_snippet": "2026-09-28T20:05:00Z WARN order-worker [kafka-consumer-group=order-processing] consumer lag detected partition=2 lag=27400 messages\nthroughput_msgs_sec=610 target_msgs_sec=1500 topic=order-events"
+    }
+  },
+  {
+    "case_id": "C09",
+    "source": "authored new occurrence of seeded pattern (see build_data.py)",
+    "demo_tuned": false,
+    "pattern_signature": "tls_cert_expired",
+    "alert": {
+      "title": "All logins failing with TLS handshake errors on the auth endpoint",
+      "service": "auth-service",
+      "severity": "SEV1",
+      "submitted_at": "2026-09-27T02:44:00Z",
+      "symptoms": "Every client, web and mobile, fails to connect to the auth endpoint with certificate errors since about 02:40 UTC; login and token refresh success rate is 0%.",
+      "error_message": "SSLHandshakeException: PKIX path validation failed: certificate expired",
+      "log_snippet": "2026-09-27T02:44:00Z ERROR auth-service [tls-handshake] javax.net.ssl.SSLHandshakeException: PKIX path validation failed: certificate expired\nendpoint=auth.shipfast.example error_rate=100.0%"
+    }
+  },
+  {
+    "case_id": "C10",
+    "source": "authored new occurrence of seeded pattern (see build_data.py)",
+    "demo_tuned": false,
+    "pattern_signature": "redis_oom_session_store",
+    "alert": {
+      "title": "Users being logged out en masse; session lookups failing overnight",
+      "service": "auth-service",
+      "severity": "SEV1",
+      "submitted_at": "2026-09-28T03:58:00Z",
+      "symptoms": "Auth-service session reads and writes are failing and users are getting signed out; the session Redis instance is at its memory ceiling. This is not Monday morning and no deploy went out.",
+      "error_message": "OOM command not allowed when used memory > 'maxmemory' (session-store)",
+      "log_snippet": "2026-09-28T03:58:00Z ERROR auth-service [session-store] OOM command not allowed when used memory > 'maxmemory'.\nredis_used_memory_pct=100.0% session_keys_total=4390112 oldest_session_age_days=436"
+    }
+  },
+  {
+    "case_id": "C11",
+    "source": "authored new occurrence of seeded pattern (see build_data.py)",
+    "demo_tuned": false,
+    "pattern_signature": "k8s_oom_killed_memory_leak",
+    "alert": {
+      "title": "Worker pods restarting in a loop after a dependency bump",
+      "service": "order-worker",
+      "severity": "SEV1",
+      "submitted_at": "2026-09-27T18:30:00Z",
+      "symptoms": "Since a deploy about 90 minutes ago that bumped the image-processing dependency, order-worker pods are OOMKilled every 20-30 minutes and job throughput is down by more than half.",
+      "error_message": "Pod order-worker OOMKilled: container memory working set reached its limit",
+      "log_snippet": "2026-09-27T18:30:00Z WARN kubernetes [kubelet] Pod order-worker-5d7c OOMKilled reason=Evicted container_memory_working_set_bytes=2147483648\nrestart_count=11 image_resize_lib=v4.3.0"
+    }
+  },
+  {
+    "case_id": "C12",
+    "source": "authored new occurrence of seeded pattern (see build_data.py)",
+    "demo_tuned": false,
+    "pattern_signature": "search_slow_query_missing_index",
+    "alert": {
+      "title": "Product listing search suddenly slow after the index mapping migration",
+      "service": "search-api",
+      "severity": "SEV3",
+      "submitted_at": "2026-09-28T09:20:00Z",
+      "symptoms": "p95 latency for /search/products went from about 110ms to 2.1s right after the catalog mapping migration finished; category pages time out intermittently.",
+      "error_message": "slow_query on catalog index: filter falling back to script_score",
+      "log_snippet": "2026-09-28T09:20:00Z WARN search-api [query-executor] slow_query index=catalog-v3 duration_ms=2144 filter=brand_id:null fallback=script_score\np95_latency=2100ms error_rate=1.5%"
+    }
+  },
+  {
+    "case_id": "C13",
+    "source": "authored new occurrence of seeded pattern (see build_data.py)",
+    "demo_tuned": false,
+    "pattern_signature": "opensearch_shard_allocation_failed",
+    "alert": {
+      "title": "Search cluster went RED after a data node restart",
+      "service": "search-api",
+      "severity": "SEV2",
+      "submitted_at": "2026-09-27T13:10:00Z",
+      "symptoms": "After maintenance restarted one data node, the search cluster status is RED, several primary shards remain unassigned, and about 12% of search requests return partial results.",
+      "error_message": "cluster_status=RED unassigned_shards=4 reason=ALLOCATION_FAILED",
+      "log_snippet": "2026-09-27T13:10:00Z ERROR search-api [opensearch-cluster] cluster_status=RED unassigned_shards=4 index=catalog-v3 reason=ALLOCATION_FAILED"
+    }
+  },
+  {
+    "case_id": "C14",
+    "source": "authored new occurrence of seeded pattern (see build_data.py)",
+    "demo_tuned": false,
+    "pattern_signature": "bad_feature_flag_regression",
+    "alert": {
+      "title": "Search timeouts and errors spiked once a new ranking flag reached full rollout",
+      "service": "search-api",
+      "severity": "SEV2",
+      "submitted_at": "2026-09-28T11:15:00Z",
+      "symptoms": "Right after the enable_semantic_rerank flag was ramped to 100%, search p99 latency exceeded 25s and error rate hit about 38%; traffic levels are normal.",
+      "error_message": "query-executor timeout while feature flag enable_semantic_rerank is active",
+      "log_snippet": "2026-09-28T11:15:00Z ERROR search-api [query-executor] feature_flag=enable_semantic_rerank timeout after 30000ms\np99_latency=25800ms error_rate=38.4% flag_rollout=100%"
+    }
+  },
+  {
+    "case_id": "C15",
+    "source": "authored new occurrence of seeded pattern (see build_data.py)",
+    "demo_tuned": false,
+    "pattern_signature": "webhook_signature_mismatch",
+    "alert": {
+      "title": "Payment gateway callbacks all rejected and orders stuck in pending",
+      "service": "payments-api",
+      "severity": "SEV2",
+      "submitted_at": "2026-09-27T09:05:00Z",
+      "symptoms": "Since about 09:00 UTC every callback from the payment gateway is rejected with a signature verification error; orders remain in 'pending' even though customers were charged.",
+      "error_message": "SignatureVerificationError: webhook signature mismatch",
+      "log_snippet": "2026-09-27T09:05:00Z ERROR payments-api [webhook-handler] SignatureVerificationError: webhook signature mismatch provider=gatewaypay\nrejected_events=188 error_rate=100.0%"
+    }
+  }
+]

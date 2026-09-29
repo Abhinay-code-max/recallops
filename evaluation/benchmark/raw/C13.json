@@ -1,0 +1,220 @@
+{
+  "case_id": "C13",
+  "alert": {
+    "title": "Search cluster went RED after a data node restart",
+    "service": "search-api",
+    "severity": "SEV2",
+    "submitted_at": "2026-09-27T13:10:00Z",
+    "symptoms": "After maintenance restarted one data node, the search cluster status is RED, several primary shards remain unassigned, and about 12% of search requests return partial results.",
+    "error_message": "cluster_status=RED unassigned_shards=4 reason=ALLOCATION_FAILED",
+    "log_snippet": "2026-09-27T13:10:00Z ERROR search-api [opensearch-cluster] cluster_status=RED unassigned_shards=4 index=catalog-v3 reason=ALLOCATION_FAILED"
+  },
+  "A": {
+    "ok": true,
+    "degraded": false,
+    "model_used": "openai/gpt-oss-120b",
+    "latency_s": 3.259,
+    "response": {
+      "root_cause": "Data node restart caused primary shard allocation failures leading to RED cluster status.",
+      "blast_radius": "Search cluster is RED; 4 primary shards unassigned; ~12% of search requests return partial results, impacting search functionality for users.",
+      "first_actions": [
+        "Check cluster health and unassigned shard details via _cluster/health and _cat/shards",
+        "Review allocation failure reasons in Elasticsearch logs",
+        "Attempt to manually allocate the unassigned primary shards or restart the affected data node"
+      ],
+      "last_fixed_by": null
+    },
+    "raw_text": "{\"root_cause\":\"Data node restart caused primary shard allocation failures leading to RED cluster status.\",\"blast_radius\":\"Search cluster is RED; 4 primary shards unassigned; ~12% of search requests return partial results, impacting search functionality for users.\",\"first_actions\":[\"Check cluster health and unassigned shard details via _cluster/health and _cat/shards\",\"Review allocation failure reasons in Elasticsearch logs\",\"Attempt to manually allocate the unassigned primary shards or restart the affected data node\"],\"last_fixed_by\":null}",
+    "llm_calls": [
+      {
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are an incident response assistant writing a short triage briefing for a new alert. You only have the alert below.\nRespond with strict JSON only: {\"root_cause\": string, \"blast_radius\": string, \"first_actions\": [string, string, string], \"last_fixed_by\": string or null}"
+          },
+          {
+            "role": "user",
+            "content": "New alert: Search cluster went RED after a data node restart. Service: search-api, severity: SEV2.\nSymptoms: After maintenance restarted one data node, the search cluster status is RED, several primary shards remain unassigned, and about 12% of search requests return partial results.\nError: cluster_status=RED unassigned_shards=4 reason=ALLOCATION_FAILED"
+          }
+        ],
+        "kwargs": {
+          "json_mode": true
+        },
+        "text": "{\"root_cause\":\"Data node restart caused primary shard allocation failures leading to RED cluster status.\",\"blast_radius\":\"Search cluster is RED; 4 primary shards unassigned; ~12% of search requests return partial results, impacting search functionality for users.\",\"first_actions\":[\"Check cluster health and unassigned shard details via _cluster/health and _cat/shards\",\"Review allocation failure reasons in Elasticsearch logs\",\"Attempt to manually allocate the unassigned primary shards or restart the affected data node\"],\"last_fixed_by\":null}",
+        "degraded": false,
+        "model_used": "openai/gpt-oss-120b",
+        "parsed": {
+          "root_cause": "Data node restart caused primary shard allocation failures leading to RED cluster status.",
+          "blast_radius": "Search cluster is RED; 4 primary shards unassigned; ~12% of search requests return partial results, impacting search functionality for users.",
+          "first_actions": [
+            "Check cluster health and unassigned shard details via _cluster/health and _cat/shards",
+            "Review allocation failure reasons in Elasticsearch logs",
+            "Attempt to manually allocate the unassigned primary shards or restart the affected data node"
+          ],
+          "last_fixed_by": null
+        },
+        "seconds": 3.259
+      }
+    ]
+  },
+  "B": {
+    "ok": true,
+    "degraded": false,
+    "degraded_reason": null,
+    "path": "generate_sections",
+    "template_fallback": false,
+    "latency_s": 13.248,
+    "analysis_latency_s": 1.277,
+    "models_used": [
+      "openai/gpt-oss-120b"
+    ],
+    "response": {
+      "root_cause": "Shard allocation for primary shards failed to auto\u2011reassign after the data node restart because the allocation retry limit had already been exhausted, as seen in INC-007.",
+      "blast_radius": "Cluster status turned RED, leaving primary shards unassigned and causing ~12% of search requests to return partial results, impacting all search\u2011api consumers.",
+      "first_actions": [
+        "reroute_unassigned_shards",
+        "restart_data_node",
+        "increase_allocation_retry_limit"
+      ],
+      "last_fixed_by": "Sofia Martinez"
+    },
+    "cited_incident_ids": [
+      "INC-007",
+      "INC-018",
+      "INC-021"
+    ],
+    "structured": {
+      "memory_state": "matched",
+      "evidence": [
+        {
+          "incident_id": "INC-007",
+          "date": "2026-06-09T13:44:29Z",
+          "relative": "3 months ago",
+          "service": "search-api",
+          "severity": "SEV3",
+          "excerpt": "OpenSearch cluster status RED for catalog-v2; ~15% of search requests returning partial results after a data node restart during routine maintenance.",
+          "relevance": 1.0,
+          "source_bank": "incidents"
+        },
+        {
+          "incident_id": "INC-018",
+          "date": "2026-07-28T11:36:15Z",
+          "relative": "2 months ago",
+          "service": "search-api",
+          "severity": "SEV3",
+          "excerpt": "OpenSearch data nodes at 89% disk usage, cluster entering read-only mode on the oldest index; historical search degraded.",
+          "relevance": 0.9708,
+          "source_bank": "incidents"
+        },
+        {
+          "incident_id": "INC-021",
+          "date": "2026-08-28T15:55:08Z",
+          "relative": "4 weeks ago",
+          "service": "payments-api",
+          "severity": "SEV1",
+          "excerpt": "Same signature as INC-002/INC-009/INC-017: p99 latency above 4.9s and checkout errors above 24% about 8 minutes after the v2.5.0 Friday deploy.",
+          "relevance": 0.7306,
+          "source_bank": "incidents"
+        },
+        {
+          "incident_id": "INC-002",
+          "date": "2026-05-15T14:32:10Z",
+          "relative": "4 months ago",
+          "service": "payments-api",
+          "severity": "SEV1",
+          "excerpt": "payments-api p99 latency above 4.8s and checkout error rate above 23% starting ~12 minutes after the v2.3.0 Friday deploy; new checkouts failing with DB connec\u2026",
+          "relevance": 0.7111,
+          "source_bank": "incidents"
+        },
+        {
+          "incident_id": "INC-008",
+          "date": "2026-06-15T06:58:12Z",
+          "relative": "3 months ago",
+          "service": "order-worker",
+          "severity": "SEV2",
+          "excerpt": "Second Monday-morning Redis OOM in a month; order-worker queue depth past 38k again, same signature as INC-003.",
+          "relevance": 0.5386,
+          "source_bank": "incidents"
+        },
+        {
+          "incident_id": "INC-001",
+          "date": "2026-05-12T09:14:22Z",
+          "relative": "4 months ago",
+          "service": "search-api",
+          "severity": "SEV3",
+          "excerpt": "p95 latency for /search/products jumped from 120ms to 2.4s after the catalog-v2 OpenSearch mapping migration; timeouts on the product listing page.",
+          "relevance": 0.5195,
+          "source_bank": "incidents"
+        }
+      ],
+      "ranked_fixes": [
+        {
+          "rank": 1,
+          "fix_type": "reroute_unassigned_shards",
+          "label": "Reroute unassigned shards",
+          "score": 0.6667,
+          "similarity": 1.0,
+          "worked": 1,
+          "partial": 0,
+          "failed": 0,
+          "attempts": 1,
+          "recent_failures": 0,
+          "last_used_incident_id": "INC-007"
+        }
+      ],
+      "warnings": [
+        {
+          "kind": "recurrence",
+          "message": "This is occurrence #2 of this pattern.",
+          "incident_ids": [
+            "INC-007"
+          ]
+        }
+      ],
+      "team_hint": {
+        "person": "Sofia Martinez",
+        "reason": "Resolved 1 incident matching this pattern with a working fix.",
+        "incident_ids": [
+          "INC-007"
+        ]
+      },
+      "recurrence": {
+        "occurrence_number": 2,
+        "interval_days_avg": null,
+        "open_permanent_fix_incident_id": null,
+        "message": "This is occurrence #2 of this pattern."
+      }
+    },
+    "llm_calls": [
+      {
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are an incident response assistant writing a short triage briefing. Use ONLY the evidence incidents listed below. You may reference an incident ID (like INC-002) ONLY if it appears in that evidence list -- never invent or cite any other incident ID, and never make one up.\nRULES:\n  1. first_actions[0] MUST recommend the top-ranked fix: 'reroute_unassigned_shards'.\n  2. No first_action may recommend any fix whose ledger failures exceed its successes.\n  3. Cite at least one evidence incident ID somewhere in root_cause or first_actions.\nRespond with strict JSON only: {\"root_cause\": string, \"blast_radius\": string, \"first_actions\": [string, string, string], \"last_fixed_by\": string or null}"
+          },
+          {
+            "role": "user",
+            "content": "New alert: Search cluster went RED after a data node restart. Service: search-api, severity: SEV2.\nSymptoms: After maintenance restarted one data node, the search cluster status is RED, several primary shards remain unassigned, and about 12% of search requests return partial results.\nError: cluster_status=RED unassigned_shards=4 reason=ALLOCATION_FAILED\n\nEvidence (only these incidents may be cited):\nIncident INC-007 (search-api, SEV3, 2026-06-09T13:44:29Z):\nSymptoms: OpenSearch cluster status RED for catalog-v2; ~15% of search requests returning partial results after a data node restart during routine maintenance.\nRoot cause: Shard allocation for 6 primary shards failed to auto-reassign after the node restart because the allocation retry limit (5) had already been exhausted from a prior transient failure.\nResolver: Sofia Martinez\n\nIncident INC-018 (search-api, SEV3, 2026-07-28T11:36:15Z):\nSymptoms: OpenSearch data nodes at 89% disk usage, cluster entering read-only mode on the oldest index; historical search degraded.\nRoot cause: No index lifecycle management policy existed for catalog-v2 request logs; six months of unbounded log indices consumed most of the disk.\nResolver: Sofia Martinez\n\nIncident INC-021 (payments-api, SEV1, 2026-08-28T15:55:08Z):\nSymptoms: Same signature as INC-002/INC-009/INC-017: p99 latency above 4.9s and checkout errors above 24% about 8 minutes after the v2.5.0 Friday deploy.\nRoot cause: Fourth occurrence of the same unfixed order-confirmation session leak, triggered by the v2.5.0 Friday deploy.\nResolver: Priya Nair\n\nIncident INC-002 (payments-api, SEV1, 2026-05-15T14:32:10Z):\nSymptoms: payments-api p99 latency above 4.8s and checkout error rate above 23% starting ~12 minutes after the v2.3.0 Friday deploy; new checkouts failing with DB connection errors.\nRoot cause: The v2.3.0 deploy's new order-confirmation retry path opens a DB session per retry without releasing it on timeout, exhausting the 20-connection Postgres pool within minutes of Friday peak traffic.\nResolver: Priya Nair\n\nIncident INC-008 (order-worker, SEV2, 2026-06-15T06:58:12Z):\nSymptoms: Second Monday-morning Redis OOM in a month; order-worker queue depth past 38k again, same signature as INC-003.\nRoot cause: The allkeys-lru eviction policy set after INC-003 slowed the OOM but idempotency keys from the order-retry-queue still have no TTL, so memory pressure builds back up over the weekend.\nResolver: Ananya Iyer\n\nIncident INC-001 (search-api, SEV3, 2026-05-12T09:14:22Z):\nSymptoms: p95 latency for /search/products jumped from 120ms to 2.4s after the catalog-v2 OpenSearch mapping migration; timeouts on the product listing page.\nRoot cause: The catalog-v2 OpenSearch mapping migration removed the category_id keyword sub-field; term-filter queries fell back to scripted filtering across the entire index.\nResolver: Sofia Martinez\n\nRanked fixes (use the top one as first_actions[0]):\n  1. reroute_unassigned_shards (score=+0.667, worked=1, partial=0, failed=0, recent_failures=0)\nRecurrence: This is occurrence #2 of this pattern.\nTeam expert: Sofia Martinez (Resolved 1 incident matching this pattern with a working fix.)"
+          }
+        ],
+        "kwargs": {
+          "json_mode": true
+        },
+        "text": "{\"root_cause\":\"Shard allocation for primary shards failed to auto\u2011reassign after the data node restart because the allocation retry limit had already been exhausted, as seen in INC-007.\",\"blast_radius\":\"Cluster status turned RED, leaving primary shards unassigned and causing ~12% of search requests to return partial results, impacting all search\u2011api consumers.\",\"first_actions\":[\"reroute_unassigned_shards\",\"restart_data_node\",\"increase_allocation_retry_limit\"],\"last_fixed_by\":\"Sofia Martinez\"}",
+        "degraded": false,
+        "model_used": "openai/gpt-oss-120b",
+        "parsed": {
+          "root_cause": "Shard allocation for primary shards failed to auto\u2011reassign after the data node restart because the allocation retry limit had already been exhausted, as seen in INC-007.",
+          "blast_radius": "Cluster status turned RED, leaving primary shards unassigned and causing ~12% of search requests to return partial results, impacting all search\u2011api consumers.",
+          "first_actions": [
+            "reroute_unassigned_shards",
+            "restart_data_node",
+            "increase_allocation_retry_limit"
+          ],
+          "last_fixed_by": "Sofia Martinez"
+        },
+        "seconds": 11.971
+      }
+    ]
+  }
+}

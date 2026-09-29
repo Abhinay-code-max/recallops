@@ -1,0 +1,210 @@
+{
+  "case_id": "C09",
+  "alert": {
+    "title": "All logins failing with TLS handshake errors on the auth endpoint",
+    "service": "auth-service",
+    "severity": "SEV1",
+    "submitted_at": "2026-09-27T02:44:00Z",
+    "symptoms": "Every client, web and mobile, fails to connect to the auth endpoint with certificate errors since about 02:40 UTC; login and token refresh success rate is 0%.",
+    "error_message": "SSLHandshakeException: PKIX path validation failed: certificate expired",
+    "log_snippet": "2026-09-27T02:44:00Z ERROR auth-service [tls-handshake] javax.net.ssl.SSLHandshakeException: PKIX path validation failed: certificate expired\nendpoint=auth.shipfast.example error_rate=100.0%"
+  },
+  "A": {
+    "ok": true,
+    "degraded": false,
+    "model_used": "openai/gpt-oss-120b",
+    "latency_s": 5.077,
+    "response": {
+      "root_cause": "Auth service TLS certificate expired causing handshake failures",
+      "blast_radius": "All client applications (web and mobile) cannot authenticate; login and token refresh at 0% success",
+      "first_actions": [
+        "Verify the certificate expiration on auth-service",
+        "Renew or replace the expired TLS certificate",
+        "Restart auth-service and confirm successful handshakes"
+      ],
+      "last_fixed_by": null
+    },
+    "raw_text": "{\"root_cause\":\"Auth service TLS certificate expired causing handshake failures\",\"blast_radius\":\"All client applications (web and mobile) cannot authenticate; login and token refresh at 0% success\",\"first_actions\":[\"Verify the certificate expiration on auth-service\",\"Renew or replace the expired TLS certificate\",\"Restart auth-service and confirm successful handshakes\"],\"last_fixed_by\":null}",
+    "llm_calls": [
+      {
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are an incident response assistant writing a short triage briefing for a new alert. You only have the alert below.\nRespond with strict JSON only: {\"root_cause\": string, \"blast_radius\": string, \"first_actions\": [string, string, string], \"last_fixed_by\": string or null}"
+          },
+          {
+            "role": "user",
+            "content": "New alert: All logins failing with TLS handshake errors on the auth endpoint. Service: auth-service, severity: SEV1.\nSymptoms: Every client, web and mobile, fails to connect to the auth endpoint with certificate errors since about 02:40 UTC; login and token refresh success rate is 0%.\nError: SSLHandshakeException: PKIX path validation failed: certificate expired"
+          }
+        ],
+        "kwargs": {
+          "json_mode": true
+        },
+        "text": "{\"root_cause\":\"Auth service TLS certificate expired causing handshake failures\",\"blast_radius\":\"All client applications (web and mobile) cannot authenticate; login and token refresh at 0% success\",\"first_actions\":[\"Verify the certificate expiration on auth-service\",\"Renew or replace the expired TLS certificate\",\"Restart auth-service and confirm successful handshakes\"],\"last_fixed_by\":null}",
+        "degraded": false,
+        "model_used": "openai/gpt-oss-120b",
+        "parsed": {
+          "root_cause": "Auth service TLS certificate expired causing handshake failures",
+          "blast_radius": "All client applications (web and mobile) cannot authenticate; login and token refresh at 0% success",
+          "first_actions": [
+            "Verify the certificate expiration on auth-service",
+            "Renew or replace the expired TLS certificate",
+            "Restart auth-service and confirm successful handshakes"
+          ],
+          "last_fixed_by": null
+        },
+        "seconds": 5.077
+      }
+    ]
+  },
+  "B": {
+    "ok": true,
+    "degraded": false,
+    "degraded_reason": null,
+    "path": "generate_sections",
+    "template_fallback": false,
+    "latency_s": 8.532,
+    "analysis_latency_s": 0.647,
+    "models_used": [
+      "openai/gpt-oss-120b"
+    ],
+    "response": {
+      "root_cause": "The auth-service TLS certificate expired because cert-manager's renewal job failed after an expired DNS-01 challenge API token (see INC-012).",
+      "blast_radius": "All client applications (web and mobile) are unable to perform logins or token refreshes, resulting in 0% success across the auth endpoint.",
+      "first_actions": [
+        "manually_renew_and_deploy_certificate",
+        "notify_engineering_and_ops_teams",
+        "enable_certificate_monitoring_alerts"
+      ],
+      "last_fixed_by": "Emily Chen"
+    },
+    "cited_incident_ids": [
+      "INC-005",
+      "INC-011",
+      "INC-012"
+    ],
+    "structured": {
+      "memory_state": "matched",
+      "evidence": [
+        {
+          "incident_id": "INC-012",
+          "date": "2026-07-01T03:27:54Z",
+          "relative": "2 months ago",
+          "service": "auth-service",
+          "severity": "SEV1",
+          "excerpt": "100% of login and token-refresh requests failing with SSL handshake errors starting at 03:27 UTC.",
+          "relevance": 1.0,
+          "source_bank": "incidents"
+        },
+        {
+          "incident_id": "INC-011",
+          "date": "2026-06-29T08:41:17Z",
+          "relative": "2 months ago",
+          "service": "auth-service",
+          "severity": "SEV3",
+          "excerpt": "Google OAuth login failing intermittently for ~4% of attempts with upstream 500 errors.",
+          "relevance": 0.4086,
+          "source_bank": "incidents"
+        },
+        {
+          "incident_id": "INC-005",
+          "date": "2026-05-27T16:20:55Z",
+          "relative": "4 months ago",
+          "service": "auth-service",
+          "severity": "SEV2",
+          "excerpt": "About 6% of login attempts failing with 'invalid token' errors; users logged out unexpectedly.",
+          "relevance": 0.3556,
+          "source_bank": "incidents"
+        }
+      ],
+      "ranked_fixes": [
+        {
+          "rank": 1,
+          "fix_type": "manually_renew_and_deploy_certificate",
+          "label": "Manually renew and deploy certificate",
+          "score": 0.6667,
+          "similarity": 1.0,
+          "worked": 1,
+          "partial": 0,
+          "failed": 0,
+          "attempts": 1,
+          "recent_failures": 0,
+          "last_used_incident_id": "INC-012"
+        },
+        {
+          "rank": 2,
+          "fix_type": "restart_auth_pods",
+          "label": "Restart auth pods",
+          "score": 0.0333,
+          "similarity": 1.0,
+          "worked": 0,
+          "partial": 0,
+          "failed": 1,
+          "attempts": 1,
+          "recent_failures": 1,
+          "last_used_incident_id": "INC-012"
+        }
+      ],
+      "warnings": [
+        {
+          "kind": "failed_fix",
+          "message": "Restart auth pods failed 1 of 1 time(s) for this pattern -- try another fix first.",
+          "incident_ids": [
+            "INC-012"
+          ]
+        },
+        {
+          "kind": "recurrence",
+          "message": "This is occurrence #2 of this pattern.",
+          "incident_ids": [
+            "INC-012"
+          ]
+        }
+      ],
+      "team_hint": {
+        "person": "Emily Chen",
+        "reason": "Resolved 1 incident matching this pattern with a working fix.",
+        "incident_ids": [
+          "INC-012"
+        ]
+      },
+      "recurrence": {
+        "occurrence_number": 2,
+        "interval_days_avg": null,
+        "open_permanent_fix_incident_id": null,
+        "message": "This is occurrence #2 of this pattern."
+      }
+    },
+    "llm_calls": [
+      {
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are an incident response assistant writing a short triage briefing. Use ONLY the evidence incidents listed below. You may reference an incident ID (like INC-002) ONLY if it appears in that evidence list -- never invent or cite any other incident ID, and never make one up.\nRULES:\n  1. first_actions[0] MUST recommend the top-ranked fix: 'manually_renew_and_deploy_certificate'.\n  2. No first_action may recommend any fix whose ledger failures exceed its successes.\n  3. Cite at least one evidence incident ID somewhere in root_cause or first_actions.\nRespond with strict JSON only: {\"root_cause\": string, \"blast_radius\": string, \"first_actions\": [string, string, string], \"last_fixed_by\": string or null}"
+          },
+          {
+            "role": "user",
+            "content": "New alert: All logins failing with TLS handshake errors on the auth endpoint. Service: auth-service, severity: SEV1.\nSymptoms: Every client, web and mobile, fails to connect to the auth endpoint with certificate errors since about 02:40 UTC; login and token refresh success rate is 0%.\nError: SSLHandshakeException: PKIX path validation failed: certificate expired\n\nEvidence (only these incidents may be cited):\nIncident INC-012 (auth-service, SEV1, 2026-07-01T03:27:54Z):\nSymptoms: 100% of login and token-refresh requests failing with SSL handshake errors starting at 03:27 UTC.\nRoot cause: The TLS certificate for auth.shipfast.example expired; cert-manager's renewal job had been silently failing for 3 weeks due to an expired DNS-01 challenge API token.\nResolver: Emily Chen\n\nIncident INC-011 (auth-service, SEV3, 2026-06-29T08:41:17Z):\nSymptoms: Google OAuth login failing intermittently for ~4% of attempts with upstream 500 errors.\nRoot cause: Google's OAuth token endpoint had a transient elevated error rate (confirmed via provider status page); auth-service had no retry/circuit breaker around the call.\nResolver: Emily Chen\n\nIncident INC-005 (auth-service, SEV2, 2026-05-27T16:20:55Z):\nSymptoms: About 6% of login attempts failing with 'invalid token' errors; users logged out unexpectedly.\nRoot cause: NTP drift of 92 seconds on one auth-service node caused JWT nbf/iat clock-skew validation failures for tokens issued from that node.\nResolver: Emily Chen\n\nRanked fixes (use the top one as first_actions[0]):\n  1. manually_renew_and_deploy_certificate (score=+0.667, worked=1, partial=0, failed=0, recent_failures=0)\n  2. restart_auth_pods (score=+0.033, worked=0, partial=0, failed=1, recent_failures=1)\nRISKY fixes -- ledger failures exceed successes (do NOT recommend these in any first_action, not even as a last resort): restart_auth_pods\nRecurrence: This is occurrence #2 of this pattern.\nTeam expert: Emily Chen (Resolved 1 incident matching this pattern with a working fix.)"
+          }
+        ],
+        "kwargs": {
+          "json_mode": true
+        },
+        "text": "{\"root_cause\":\"The auth-service TLS certificate expired because cert-manager's renewal job failed after an expired DNS-01 challenge API token (see INC-012).\",\"blast_radius\":\"All client applications (web and mobile) are unable to perform logins or token refreshes, resulting in 0% success across the auth endpoint.\",\"first_actions\":[\"manually_renew_and_deploy_certificate\",\"notify_engineering_and_ops_teams\",\"enable_certificate_monitoring_alerts\"],\"last_fixed_by\":\"Emily Chen\"}",
+        "degraded": false,
+        "model_used": "openai/gpt-oss-120b",
+        "parsed": {
+          "root_cause": "The auth-service TLS certificate expired because cert-manager's renewal job failed after an expired DNS-01 challenge API token (see INC-012).",
+          "blast_radius": "All client applications (web and mobile) are unable to perform logins or token refreshes, resulting in 0% success across the auth endpoint.",
+          "first_actions": [
+            "manually_renew_and_deploy_certificate",
+            "notify_engineering_and_ops_teams",
+            "enable_certificate_monitoring_alerts"
+          ],
+          "last_fixed_by": "Emily Chen"
+        },
+        "seconds": 7.885
+      }
+    ]
+  }
+}

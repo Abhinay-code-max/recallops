@@ -1,0 +1,2023 @@
+{
+  "head_sha": "05eb0cb325925f03e7395a9d353f7e1d2ea4f732",
+  "head_sha_at_collect": "05eb0cb325925f03e7395a9d353f7e1d2ea4f732",
+  "model_primary": "openai/gpt-oss-120b",
+  "model_fallback": "qwen/qwen3.8-27b",
+  "n_cases": 15,
+  "patterns": [
+    "bad_feature_flag_regression",
+    "k8s_oom_killed_memory_leak",
+    "kafka_consumer_lag",
+    "opensearch_shard_allocation_failed",
+    "postgres_pool_exhaustion",
+    "redis_oom",
+    "redis_oom_session_store",
+    "search_slow_query_missing_index",
+    "tls_cert_expired",
+    "webhook_signature_mismatch"
+  ],
+  "collect_started": "2026-09-29T06:29:59.651667+00:00",
+  "collect_finished": "2026-09-29T06:33:38.471382+00:00",
+  "frozen_at": "2026-09-29T06:29:37.354208+00:00",
+  "scored_at": "2026-09-29T06:33:46.142768+00:00",
+  "hindsight_ping": {
+    "status": "ok",
+    "seconds": 0.59
+  },
+  "request_health": {
+    "A": {
+      "successful": 15,
+      "degraded": 0,
+      "failures": 0
+    },
+    "B": {
+      "successful": 15,
+      "degraded": 0,
+      "failures": 0,
+      "template_fallbacks": 0,
+      "memory_state_counts": {
+        "matched": 15,
+        "no_match": 0,
+        "empty": 0
+      },
+      "weak_or_no_match_case_ids": [],
+      "cases_with_live_bank_evidence": {}
+    }
+  },
+  "metrics": {
+    "root_cause_generic": {
+      "A": {
+        "n": 15,
+        "sum": 14,
+        "mean": 0.9333
+      },
+      "B": {
+        "n": 15,
+        "sum": 15,
+        "mean": 1.0
+      }
+    },
+    "root_cause_specific_known": {
+      "A": {
+        "n": 15,
+        "sum": 1,
+        "mean": 0.0667
+      },
+      "B": {
+        "n": 15,
+        "sum": 13,
+        "mean": 0.8667
+      }
+    },
+    "worked_fix_any_of_3_actions": {
+      "A": {
+        "n": 15,
+        "sum": 10,
+        "mean": 0.6667
+      },
+      "B": {
+        "n": 15,
+        "sum": 15,
+        "mean": 1.0
+      }
+    },
+    "worked_fix_first_action": {
+      "A": {
+        "n": 15,
+        "sum": 1,
+        "mean": 0.0667
+      },
+      "B": {
+        "n": 15,
+        "sum": 15,
+        "mean": 1.0
+      }
+    },
+    "failed_fix_avoided": {
+      "A": {
+        "n": 7,
+        "sum": 1,
+        "mean": 0.1429
+      },
+      "B": {
+        "n": 7,
+        "sum": 7,
+        "mean": 1.0
+      }
+    },
+    "unsupported_claims_total_count": {
+      "A": {
+        "n": 15,
+        "sum": 0,
+        "mean": 0.0
+      },
+      "B": {
+        "n": 15,
+        "sum": 0,
+        "mean": 0.0
+      }
+    },
+    "responses_with_unsupported_claim": {
+      "A": {
+        "n": 15,
+        "sum": 0,
+        "mean": 0.0
+      },
+      "B": {
+        "n": 15,
+        "sum": 0,
+        "mean": 0.0
+      }
+    },
+    "actionability_0_3": {
+      "A": {
+        "n": 15,
+        "sum": 14,
+        "mean": 0.9333
+      },
+      "B": {
+        "n": 15,
+        "sum": 32,
+        "mean": 2.1333
+      }
+    },
+    "failed_fix_warning_B_only": {
+      "A": "N/A",
+      "B": {
+        "n": 7,
+        "sum": 7,
+        "mean": 1.0
+      }
+    },
+    "failed_fix_warning_structured_only_B": {
+      "A": "N/A",
+      "B": {
+        "n": 7,
+        "sum": 7,
+        "mean": 1.0
+      }
+    },
+    "evidence_recall_B_only": {
+      "A": "N/A",
+      "B": {
+        "n": 15,
+        "sum": 13.333333333333334,
+        "mean": 0.8889
+      }
+    },
+    "evidence_precision_B_only": {
+      "A": "N/A",
+      "B": {
+        "n": 15,
+        "sum": 11.833333333333334,
+        "mean": 0.7889
+      }
+    },
+    "evidence_top1_expected_B_only": {
+      "A": "N/A",
+      "B": {
+        "n": 15,
+        "sum": 15,
+        "mean": 1.0
+      }
+    },
+    "resolver_knowledge_any_B_only": {
+      "A": "N/A",
+      "B": {
+        "n": 15,
+        "sum": 15,
+        "mean": 1.0
+      }
+    },
+    "resolver_team_hint_correct_B_only": {
+      "A": "N/A",
+      "B": {
+        "n": 15,
+        "sum": 15,
+        "mean": 1.0
+      }
+    },
+    "recurrence_detected_B_only": {
+      "A": "N/A",
+      "B": {
+        "n": 15,
+        "sum": 15,
+        "mean": 1.0
+      }
+    },
+    "recurrence_occurrence_number_exact_B_only": {
+      "A": "N/A",
+      "B": {
+        "n": 15,
+        "sum": 15,
+        "mean": 1.0
+      }
+    },
+    "composite_shared_metrics": {
+      "A": {
+        "n": 15,
+        "mean": 0.4689
+      },
+      "B": {
+        "n": 15,
+        "mean": 0.9044
+      }
+    }
+  },
+  "latency": {
+    "A": {
+      "n": 15,
+      "median_s": 4.069,
+      "p95_s": 5.41,
+      "mean_s": 3.773,
+      "max_s": 6.186
+    },
+    "B": {
+      "n": 15,
+      "median_s": 8.988,
+      "p95_s": 15.313,
+      "mean_s": 9.266,
+      "max_s": 18.674
+    }
+  },
+  "wins": {
+    "recallops": 15,
+    "tie": 0,
+    "stateless": 0,
+    "excluded_failure": 0
+  },
+  "stateless_incidental_failed_fix_warnings_unscored": {
+    "n_applicable": 7,
+    "n_warned": 0
+  },
+  "tie_margin": 0.1,
+  "per_case": [
+    {
+      "case_id": "C01",
+      "pattern": "postgres_pool_exhaustion",
+      "service": "payments-api",
+      "demo_tuned": true,
+      "title": "Checkout errors spiking after Friday deploy",
+      "A": {
+        "ok": true,
+        "degraded": false,
+        "latency_s": 2.291,
+        "model_used": "openai/gpt-oss-120b",
+        "scores": {
+          "root_cause": {
+            "generic": 1,
+            "specific": 0,
+            "groups_matched": []
+          },
+          "worked_fix": {
+            "any_of_actions": 1,
+            "first_action": 0,
+            "matched_fix_types": [
+              "increase_postgres_pool_size"
+            ]
+          },
+          "failed_fix_avoidance": {
+            "avoided": 0,
+            "recommended_failed_fixes": [
+              "rollback_to_previous_deploy"
+            ]
+          },
+          "unsupported_claims": {
+            "count": 0,
+            "clean": 1,
+            "claims": []
+          },
+          "actionability": {
+            "score": 1,
+            "concrete_first_action": 0,
+            "specific_artifacts": 1,
+            "verification_criterion": 0
+          },
+          "failed_fix_warning": "N/A",
+          "evidence_retrieval": "N/A",
+          "resolver_knowledge": "N/A",
+          "recurrence_detection": "N/A",
+          "incidental_failed_fix_warning_unscored": 0
+        },
+        "composite": 0.4667
+      },
+      "B": {
+        "ok": true,
+        "degraded": false,
+        "latency_s": 3.25,
+        "model_used": [
+          "openai/gpt-oss-120b"
+        ],
+        "scores": {
+          "root_cause": {
+            "generic": 1,
+            "specific": 0,
+            "groups_matched": [
+              1
+            ]
+          },
+          "worked_fix": {
+            "any_of_actions": 1,
+            "first_action": 1,
+            "matched_fix_types": [
+              "increase_postgres_pool_size",
+              "kill_idle_db_connections"
+            ]
+          },
+          "failed_fix_avoidance": {
+            "avoided": 1,
+            "recommended_failed_fixes": []
+          },
+          "unsupported_claims": {
+            "count": 0,
+            "clean": 1,
+            "claims": []
+          },
+          "actionability": {
+            "score": 2,
+            "concrete_first_action": 1,
+            "specific_artifacts": 1,
+            "verification_criterion": 0
+          },
+          "failed_fix_warning": {
+            "structured_warning": 1,
+            "text_warning": 0,
+            "warned": 1
+          },
+          "evidence_retrieval": {
+            "retrieved_ids": [
+              "INC-002",
+              "INC-021",
+              "INC-009",
+              "INC-017"
+            ],
+            "recall": 1.0,
+            "precision": 1.0,
+            "top1_expected": 1,
+            "any_expected": 1,
+            "briefing_cited_expected_recall": 0.25
+          },
+          "resolver_knowledge": {
+            "team_hint_correct": 1,
+            "briefing_names_resolver": 0,
+            "primary_resolver_identified": 1,
+            "any": 1
+          },
+          "recurrence_detection": {
+            "structured_flag": 1,
+            "occurrence_number_exact": 1,
+            "text_mentions_recurrence": 1,
+            "detected": 1
+          }
+        },
+        "composite": 0.7333,
+        "memory_state": "matched",
+        "template_fallback": false,
+        "live_bank_evidence": []
+      },
+      "verdict": "recallops"
+    },
+    {
+      "case_id": "C02",
+      "pattern": "postgres_pool_exhaustion",
+      "service": "payments-api",
+      "demo_tuned": true,
+      "title": "Checkout errors again after the next Friday deploy",
+      "A": {
+        "ok": true,
+        "degraded": false,
+        "latency_s": 1.43,
+        "model_used": "openai/gpt-oss-120b",
+        "scores": {
+          "root_cause": {
+            "generic": 1,
+            "specific": 0,
+            "groups_matched": []
+          },
+          "worked_fix": {
+            "any_of_actions": 1,
+            "first_action": 0,
+            "matched_fix_types": [
+              "increase_postgres_pool_size"
+            ]
+          },
+          "failed_fix_avoidance": {
+            "avoided": 0,
+            "recommended_failed_fixes": [
+              "rollback_to_previous_deploy"
+            ]
+          },
+          "unsupported_claims": {
+            "count": 0,
+            "clean": 1,
+            "claims": []
+          },
+          "actionability": {
+            "score": 2,
+            "concrete_first_action": 0,
+            "specific_artifacts": 1,
+            "verification_criterion": 1
+          },
+          "failed_fix_warning": "N/A",
+          "evidence_retrieval": "N/A",
+          "resolver_knowledge": "N/A",
+          "recurrence_detection": "N/A",
+          "incidental_failed_fix_warning_unscored": 0
+        },
+        "composite": 0.5333
+      },
+      "B": {
+        "ok": true,
+        "degraded": false,
+        "latency_s": 3.238,
+        "model_used": [
+          "openai/gpt-oss-120b"
+        ],
+        "scores": {
+          "root_cause": {
+            "generic": 1,
+            "specific": 1,
+            "groups_matched": [
+              0,
+              1
+            ]
+          },
+          "worked_fix": {
+            "any_of_actions": 1,
+            "first_action": 1,
+            "matched_fix_types": [
+              "increase_postgres_pool_size",
+              "kill_idle_db_connections"
+            ]
+          },
+          "failed_fix_avoidance": {
+            "avoided": 1,
+            "recommended_failed_fixes": []
+          },
+          "unsupported_claims": {
+            "count": 0,
+            "clean": 1,
+            "claims": []
+          },
+          "actionability": {
+            "score": 2,
+            "concrete_first_action": 1,
+            "specific_artifacts": 1,
+            "verification_criterion": 0
+          },
+          "failed_fix_warning": {
+            "structured_warning": 1,
+            "text_warning": 0,
+            "warned": 1
+          },
+          "evidence_retrieval": {
+            "retrieved_ids": [
+              "INC-002",
+              "INC-021",
+              "INC-009",
+              "INC-017"
+            ],
+            "recall": 1.0,
+            "precision": 1.0,
+            "top1_expected": 1,
+            "any_expected": 1,
+            "briefing_cited_expected_recall": 0.25
+          },
+          "resolver_knowledge": {
+            "team_hint_correct": 1,
+            "briefing_names_resolver": 0,
+            "primary_resolver_identified": 1,
+            "any": 1
+          },
+          "recurrence_detection": {
+            "structured_flag": 1,
+            "occurrence_number_exact": 1,
+            "text_mentions_recurrence": 0,
+            "detected": 1
+          }
+        },
+        "composite": 0.9333,
+        "memory_state": "matched",
+        "template_fallback": false,
+        "live_bank_evidence": []
+      },
+      "verdict": "recallops"
+    },
+    {
+      "case_id": "C03",
+      "pattern": "redis_oom",
+      "service": "order-worker",
+      "demo_tuned": true,
+      "title": "order-worker degraded Monday morning",
+      "A": {
+        "ok": true,
+        "degraded": false,
+        "latency_s": 4.405,
+        "model_used": "openai/gpt-oss-120b",
+        "scores": {
+          "root_cause": {
+            "generic": 0,
+            "specific": 0,
+            "groups_matched": []
+          },
+          "worked_fix": {
+            "any_of_actions": 0,
+            "first_action": 0,
+            "matched_fix_types": []
+          },
+          "failed_fix_avoidance": null,
+          "unsupported_claims": {
+            "count": 0,
+            "clean": 1,
+            "claims": []
+          },
+          "actionability": {
+            "score": 0,
+            "concrete_first_action": 0,
+            "specific_artifacts": 0,
+            "verification_criterion": 0
+          },
+          "failed_fix_warning": "N/A",
+          "evidence_retrieval": "N/A",
+          "resolver_knowledge": "N/A",
+          "recurrence_detection": "N/A",
+          "incidental_failed_fix_warning_unscored": null
+        },
+        "composite": 0.25
+      },
+      "B": {
+        "ok": true,
+        "degraded": false,
+        "latency_s": 7.242,
+        "model_used": [
+          "openai/gpt-oss-120b"
+        ],
+        "scores": {
+          "root_cause": {
+            "generic": 1,
+            "specific": 0,
+            "groups_matched": [
+              2
+            ]
+          },
+          "worked_fix": {
+            "any_of_actions": 1,
+            "first_action": 1,
+            "matched_fix_types": [
+              "restart_redis_and_set_eviction_policy"
+            ]
+          },
+          "failed_fix_avoidance": null,
+          "unsupported_claims": {
+            "count": 0,
+            "clean": 1,
+            "claims": []
+          },
+          "actionability": {
+            "score": 2,
+            "concrete_first_action": 1,
+            "specific_artifacts": 1,
+            "verification_criterion": 0
+          },
+          "failed_fix_warning": null,
+          "evidence_retrieval": {
+            "retrieved_ids": [
+              "INC-003",
+              "INC-008",
+              "INC-016"
+            ],
+            "recall": 0.6666666666666666,
+            "precision": 0.6666666666666666,
+            "top1_expected": 1,
+            "any_expected": 1,
+            "briefing_cited_expected_recall": 0.3333333333333333
+          },
+          "resolver_knowledge": {
+            "team_hint_correct": 1,
+            "briefing_names_resolver": 1,
+            "primary_resolver_identified": 1,
+            "any": 1
+          },
+          "recurrence_detection": {
+            "structured_flag": 1,
+            "occurrence_number_exact": 1,
+            "text_mentions_recurrence": 0,
+            "detected": 1
+          }
+        },
+        "composite": 0.6667,
+        "memory_state": "matched",
+        "template_fallback": false,
+        "live_bank_evidence": []
+      },
+      "verdict": "recallops"
+    },
+    {
+      "case_id": "C04",
+      "pattern": "kafka_consumer_lag",
+      "service": "order-worker",
+      "demo_tuned": true,
+      "title": "order-worker falling behind during Diwali Dhamaka Sale",
+      "A": {
+        "ok": true,
+        "degraded": false,
+        "latency_s": 6.186,
+        "model_used": "openai/gpt-oss-120b",
+        "scores": {
+          "root_cause": {
+            "generic": 1,
+            "specific": 0,
+            "groups_matched": [
+              1
+            ]
+          },
+          "worked_fix": {
+            "any_of_actions": 1,
+            "first_action": 0,
+            "matched_fix_types": [
+              "scale_consumer_replicas"
+            ]
+          },
+          "failed_fix_avoidance": {
+            "avoided": 1,
+            "recommended_failed_fixes": []
+          },
+          "unsupported_claims": {
+            "count": 0,
+            "clean": 1,
+            "claims": []
+          },
+          "actionability": {
+            "score": 1,
+            "concrete_first_action": 0,
+            "specific_artifacts": 1,
+            "verification_criterion": 0
+          },
+          "failed_fix_warning": "N/A",
+          "evidence_retrieval": "N/A",
+          "resolver_knowledge": "N/A",
+          "recurrence_detection": "N/A",
+          "incidental_failed_fix_warning_unscored": 0
+        },
+        "composite": 0.6667
+      },
+      "B": {
+        "ok": true,
+        "degraded": false,
+        "latency_s": 7.286,
+        "model_used": [
+          "openai/gpt-oss-120b"
+        ],
+        "scores": {
+          "root_cause": {
+            "generic": 1,
+            "specific": 1,
+            "groups_matched": [
+              0,
+              1
+            ]
+          },
+          "worked_fix": {
+            "any_of_actions": 1,
+            "first_action": 1,
+            "matched_fix_types": [
+              "scale_consumer_replicas"
+            ]
+          },
+          "failed_fix_avoidance": {
+            "avoided": 1,
+            "recommended_failed_fixes": []
+          },
+          "unsupported_claims": {
+            "count": 0,
+            "clean": 1,
+            "claims": []
+          },
+          "actionability": {
+            "score": 2,
+            "concrete_first_action": 1,
+            "specific_artifacts": 1,
+            "verification_criterion": 0
+          },
+          "failed_fix_warning": {
+            "structured_warning": 1,
+            "text_warning": 0,
+            "warned": 1
+          },
+          "evidence_retrieval": {
+            "retrieved_ids": [
+              "INC-006",
+              "INC-020"
+            ],
+            "recall": 1.0,
+            "precision": 1.0,
+            "top1_expected": 1,
+            "any_expected": 1,
+            "briefing_cited_expected_recall": 0.5
+          },
+          "resolver_knowledge": {
+            "team_hint_correct": 1,
+            "briefing_names_resolver": 1,
+            "primary_resolver_identified": 1,
+            "any": 1
+          },
+          "recurrence_detection": {
+            "structured_flag": 1,
+            "occurrence_number_exact": 1,
+            "text_mentions_recurrence": 0,
+            "detected": 1
+          }
+        },
+        "composite": 0.9333,
+        "memory_state": "matched",
+        "template_fallback": false,
+        "live_bank_evidence": []
+      },
+      "verdict": "recallops"
+    },
+    {
+      "case_id": "C05",
+      "pattern": "postgres_pool_exhaustion",
+      "service": "payments-api",
+      "demo_tuned": true,
+      "title": "Recurring checkout errors after a Friday deploy",
+      "A": {
+        "ok": true,
+        "degraded": false,
+        "latency_s": 5.072,
+        "model_used": "openai/gpt-oss-120b",
+        "scores": {
+          "root_cause": {
+            "generic": 1,
+            "specific": 0,
+            "groups_matched": [
+              0
+            ]
+          },
+          "worked_fix": {
+            "any_of_actions": 1,
+            "first_action": 0,
+            "matched_fix_types": [
+              "increase_postgres_pool_size"
+            ]
+          },
+          "failed_fix_avoidance": {
+            "avoided": 0,
+            "recommended_failed_fixes": [
+              "rollback_to_previous_deploy"
+            ]
+          },
+          "unsupported_claims": {
+            "count": 0,
+            "clean": 1,
+            "claims": []
+          },
+          "actionability": {
+            "score": 1,
+            "concrete_first_action": 0,
+            "specific_artifacts": 0,
+            "verification_criterion": 1
+          },
+          "failed_fix_warning": "N/A",
+          "evidence_retrieval": "N/A",
+          "resolver_knowledge": "N/A",
+          "recurrence_detection": "N/A",
+          "incidental_failed_fix_warning_unscored": 0
+        },
+        "composite": 0.4667
+      },
+      "B": {
+        "ok": true,
+        "degraded": false,
+        "latency_s": 10.698,
+        "model_used": [
+          "openai/gpt-oss-120b"
+        ],
+        "scores": {
+          "root_cause": {
+            "generic": 1,
+            "specific": 1,
+            "groups_matched": [
+              0,
+              1
+            ]
+          },
+          "worked_fix": {
+            "any_of_actions": 1,
+            "first_action": 1,
+            "matched_fix_types": [
+              "increase_postgres_pool_size",
+              "kill_idle_db_connections"
+            ]
+          },
+          "failed_fix_avoidance": {
+            "avoided": 1,
+            "recommended_failed_fixes": []
+          },
+          "unsupported_claims": {
+            "count": 0,
+            "clean": 1,
+            "claims": []
+          },
+          "actionability": {
+            "score": 2,
+            "concrete_first_action": 1,
+            "specific_artifacts": 1,
+            "verification_criterion": 0
+          },
+          "failed_fix_warning": {
+            "structured_warning": 1,
+            "text_warning": 0,
+            "warned": 1
+          },
+          "evidence_retrieval": {
+            "retrieved_ids": [
+              "INC-021",
+              "INC-017",
+              "INC-009",
+              "INC-002"
+            ],
+            "recall": 1.0,
+            "precision": 1.0,
+            "top1_expected": 1,
+            "any_expected": 1,
+            "briefing_cited_expected_recall": 1.0
+          },
+          "resolver_knowledge": {
+            "team_hint_correct": 1,
+            "briefing_names_resolver": 1,
+            "primary_resolver_identified": 1,
+            "any": 1
+          },
+          "recurrence_detection": {
+            "structured_flag": 1,
+            "occurrence_number_exact": 1,
+            "text_mentions_recurrence": 0,
+            "detected": 1
+          }
+        },
+        "composite": 0.9333,
+        "memory_state": "matched",
+        "template_fallback": false,
+        "live_bank_evidence": []
+      },
+      "verdict": "recallops"
+    },
+    {
+      "case_id": "C06",
+      "pattern": "postgres_pool_exhaustion",
+      "service": "payments-api",
+      "demo_tuned": false,
+      "title": "Payment confirmations timing out right after the v2.6.3 release",
+      "A": {
+        "ok": true,
+        "degraded": false,
+        "latency_s": 1.83,
+        "model_used": "openai/gpt-oss-120b",
+        "scores": {
+          "root_cause": {
+            "generic": 1,
+            "specific": 0,
+            "groups_matched": []
+          },
+          "worked_fix": {
+            "any_of_actions": 1,
+            "first_action": 0,
+            "matched_fix_types": [
+              "increase_postgres_pool_size"
+            ]
+          },
+          "failed_fix_avoidance": {
+            "avoided": 0,
+            "recommended_failed_fixes": [
+              "rollback_to_previous_deploy"
+            ]
+          },
+          "unsupported_claims": {
+            "count": 0,
+            "clean": 1,
+            "claims": []
+          },
+          "actionability": {
+            "score": 2,
+            "concrete_first_action": 0,
+            "specific_artifacts": 1,
+            "verification_criterion": 1
+          },
+          "failed_fix_warning": "N/A",
+          "evidence_retrieval": "N/A",
+          "resolver_knowledge": "N/A",
+          "recurrence_detection": "N/A",
+          "incidental_failed_fix_warning_unscored": 0
+        },
+        "composite": 0.5333
+      },
+      "B": {
+        "ok": true,
+        "degraded": false,
+        "latency_s": 13.873,
+        "model_used": [
+          "openai/gpt-oss-120b"
+        ],
+        "scores": {
+          "root_cause": {
+            "generic": 1,
+            "specific": 1,
+            "groups_matched": [
+              0,
+              1
+            ]
+          },
+          "worked_fix": {
+            "any_of_actions": 1,
+            "first_action": 1,
+            "matched_fix_types": [
+              "increase_postgres_pool_size",
+              "kill_idle_db_connections"
+            ]
+          },
+          "failed_fix_avoidance": {
+            "avoided": 1,
+            "recommended_failed_fixes": []
+          },
+          "unsupported_claims": {
+            "count": 0,
+            "clean": 1,
+            "claims": []
+          },
+          "actionability": {
+            "score": 2,
+            "concrete_first_action": 1,
+            "specific_artifacts": 1,
+            "verification_criterion": 0
+          },
+          "failed_fix_warning": {
+            "structured_warning": 1,
+            "text_warning": 0,
+            "warned": 1
+          },
+          "evidence_retrieval": {
+            "retrieved_ids": [
+              "INC-002",
+              "INC-016",
+              "INC-009",
+              "INC-012"
+            ],
+            "recall": 0.5,
+            "precision": 0.5,
+            "top1_expected": 1,
+            "any_expected": 1,
+            "briefing_cited_expected_recall": 0.5
+          },
+          "resolver_knowledge": {
+            "team_hint_correct": 1,
+            "briefing_names_resolver": 1,
+            "primary_resolver_identified": 1,
+            "any": 1
+          },
+          "recurrence_detection": {
+            "structured_flag": 1,
+            "occurrence_number_exact": 1,
+            "text_mentions_recurrence": 0,
+            "detected": 1
+          }
+        },
+        "composite": 0.9333,
+        "memory_state": "matched",
+        "template_fallback": false,
+        "live_bank_evidence": []
+      },
+      "verdict": "recallops"
+    },
+    {
+      "case_id": "C07",
+      "pattern": "redis_oom",
+      "service": "order-worker",
+      "demo_tuned": false,
+      "title": "Background jobs stalling because Redis keeps refusing writes",
+      "A": {
+        "ok": true,
+        "degraded": false,
+        "latency_s": 4.085,
+        "model_used": "openai/gpt-oss-120b",
+        "scores": {
+          "root_cause": {
+            "generic": 1,
+            "specific": 0,
+            "groups_matched": []
+          },
+          "worked_fix": {
+            "any_of_actions": 1,
+            "first_action": 1,
+            "matched_fix_types": [
+              "restart_redis_and_set_eviction_policy"
+            ]
+          },
+          "failed_fix_avoidance": null,
+          "unsupported_claims": {
+            "count": 0,
+            "clean": 1,
+            "claims": []
+          },
+          "actionability": {
+            "score": 0,
+            "concrete_first_action": 0,
+            "specific_artifacts": 0,
+            "verification_criterion": 0
+          },
+          "failed_fix_warning": "N/A",
+          "evidence_retrieval": "N/A",
+          "resolver_knowledge": "N/A",
+          "recurrence_detection": "N/A",
+          "incidental_failed_fix_warning_unscored": null
+        },
+        "composite": 0.5
+      },
+      "B": {
+        "ok": true,
+        "degraded": false,
+        "latency_s": 18.674,
+        "model_used": [
+          "openai/gpt-oss-120b"
+        ],
+        "scores": {
+          "root_cause": {
+            "generic": 1,
+            "specific": 1,
+            "groups_matched": [
+              0,
+              2
+            ]
+          },
+          "worked_fix": {
+            "any_of_actions": 1,
+            "first_action": 1,
+            "matched_fix_types": [
+              "restart_redis_and_set_eviction_policy"
+            ]
+          },
+          "failed_fix_avoidance": null,
+          "unsupported_claims": {
+            "count": 0,
+            "clean": 1,
+            "claims": []
+          },
+          "actionability": {
+            "score": 2,
+            "concrete_first_action": 1,
+            "specific_artifacts": 1,
+            "verification_criterion": 0
+          },
+          "failed_fix_warning": null,
+          "evidence_retrieval": {
+            "retrieved_ids": [
+              "INC-003",
+              "INC-019",
+              "INC-008"
+            ],
+            "recall": 0.6666666666666666,
+            "precision": 1.0,
+            "top1_expected": 1,
+            "any_expected": 1,
+            "briefing_cited_expected_recall": 0.3333333333333333
+          },
+          "resolver_knowledge": {
+            "team_hint_correct": 1,
+            "briefing_names_resolver": 1,
+            "primary_resolver_identified": 1,
+            "any": 1
+          },
+          "recurrence_detection": {
+            "structured_flag": 1,
+            "occurrence_number_exact": 1,
+            "text_mentions_recurrence": 0,
+            "detected": 1
+          }
+        },
+        "composite": 0.9167,
+        "memory_state": "matched",
+        "template_fallback": false,
+        "live_bank_evidence": []
+      },
+      "verdict": "recallops"
+    },
+    {
+      "case_id": "C08",
+      "pattern": "kafka_consumer_lag",
+      "service": "order-worker",
+      "demo_tuned": false,
+      "title": "Order status updates lagging behind purchases during the midnight flash drop",
+      "A": {
+        "ok": true,
+        "degraded": false,
+        "latency_s": 3.349,
+        "model_used": "openai/gpt-oss-120b",
+        "scores": {
+          "root_cause": {
+            "generic": 1,
+            "specific": 0,
+            "groups_matched": []
+          },
+          "worked_fix": {
+            "any_of_actions": 0,
+            "first_action": 0,
+            "matched_fix_types": []
+          },
+          "failed_fix_avoidance": {
+            "avoided": 0,
+            "recommended_failed_fixes": [
+              "increase_topic_partition_count_live"
+            ]
+          },
+          "unsupported_claims": {
+            "count": 0,
+            "clean": 1,
+            "claims": []
+          },
+          "actionability": {
+            "score": 2,
+            "concrete_first_action": 0,
+            "specific_artifacts": 1,
+            "verification_criterion": 1
+          },
+          "failed_fix_warning": "N/A",
+          "evidence_retrieval": "N/A",
+          "resolver_knowledge": "N/A",
+          "recurrence_detection": "N/A",
+          "incidental_failed_fix_warning_unscored": 0
+        },
+        "composite": 0.3333
+      },
+      "B": {
+        "ok": true,
+        "degraded": false,
+        "latency_s": 9.111,
+        "model_used": [
+          "openai/gpt-oss-120b"
+        ],
+        "scores": {
+          "root_cause": {
+            "generic": 1,
+            "specific": 1,
+            "groups_matched": [
+              0,
+              1
+            ]
+          },
+          "worked_fix": {
+            "any_of_actions": 1,
+            "first_action": 1,
+            "matched_fix_types": [
+              "scale_consumer_replicas"
+            ]
+          },
+          "failed_fix_avoidance": {
+            "avoided": 1,
+            "recommended_failed_fixes": []
+          },
+          "unsupported_claims": {
+            "count": 0,
+            "clean": 1,
+            "claims": []
+          },
+          "actionability": {
+            "score": 3,
+            "concrete_first_action": 1,
+            "specific_artifacts": 1,
+            "verification_criterion": 1
+          },
+          "failed_fix_warning": {
+            "structured_warning": 1,
+            "text_warning": 0,
+            "warned": 1
+          },
+          "evidence_retrieval": {
+            "retrieved_ids": [
+              "INC-006"
+            ],
+            "recall": 0.5,
+            "precision": 1.0,
+            "top1_expected": 1,
+            "any_expected": 1,
+            "briefing_cited_expected_recall": 0.5
+          },
+          "resolver_knowledge": {
+            "team_hint_correct": 1,
+            "briefing_names_resolver": 1,
+            "primary_resolver_identified": 1,
+            "any": 1
+          },
+          "recurrence_detection": {
+            "structured_flag": 1,
+            "occurrence_number_exact": 1,
+            "text_mentions_recurrence": 0,
+            "detected": 1
+          }
+        },
+        "composite": 1.0,
+        "memory_state": "matched",
+        "template_fallback": false,
+        "live_bank_evidence": []
+      },
+      "verdict": "recallops"
+    },
+    {
+      "case_id": "C09",
+      "pattern": "tls_cert_expired",
+      "service": "auth-service",
+      "demo_tuned": false,
+      "title": "All logins failing with TLS handshake errors on the auth endpoint",
+      "A": {
+        "ok": true,
+        "degraded": false,
+        "latency_s": 5.077,
+        "model_used": "openai/gpt-oss-120b",
+        "scores": {
+          "root_cause": {
+            "generic": 1,
+            "specific": 0,
+            "groups_matched": []
+          },
+          "worked_fix": {
+            "any_of_actions": 1,
+            "first_action": 0,
+            "matched_fix_types": [
+              "manually_renew_and_deploy_certificate"
+            ]
+          },
+          "failed_fix_avoidance": {
+            "avoided": 0,
+            "recommended_failed_fixes": [
+              "restart_auth_pods"
+            ]
+          },
+          "unsupported_claims": {
+            "count": 0,
+            "clean": 1,
+            "claims": []
+          },
+          "actionability": {
+            "score": 2,
+            "concrete_first_action": 0,
+            "specific_artifacts": 1,
+            "verification_criterion": 1
+          },
+          "failed_fix_warning": "N/A",
+          "evidence_retrieval": "N/A",
+          "resolver_knowledge": "N/A",
+          "recurrence_detection": "N/A",
+          "incidental_failed_fix_warning_unscored": 0
+        },
+        "composite": 0.5333
+      },
+      "B": {
+        "ok": true,
+        "degraded": false,
+        "latency_s": 8.532,
+        "model_used": [
+          "openai/gpt-oss-120b"
+        ],
+        "scores": {
+          "root_cause": {
+            "generic": 1,
+            "specific": 1,
+            "groups_matched": [
+              0,
+              1
+            ]
+          },
+          "worked_fix": {
+            "any_of_actions": 1,
+            "first_action": 1,
+            "matched_fix_types": [
+              "manually_renew_and_deploy_certificate"
+            ]
+          },
+          "failed_fix_avoidance": {
+            "avoided": 1,
+            "recommended_failed_fixes": []
+          },
+          "unsupported_claims": {
+            "count": 0,
+            "clean": 1,
+            "claims": []
+          },
+          "actionability": {
+            "score": 2,
+            "concrete_first_action": 1,
+            "specific_artifacts": 1,
+            "verification_criterion": 0
+          },
+          "failed_fix_warning": {
+            "structured_warning": 1,
+            "text_warning": 0,
+            "warned": 1
+          },
+          "evidence_retrieval": {
+            "retrieved_ids": [
+              "INC-012",
+              "INC-011",
+              "INC-005"
+            ],
+            "recall": 1.0,
+            "precision": 0.3333333333333333,
+            "top1_expected": 1,
+            "any_expected": 1,
+            "briefing_cited_expected_recall": 1.0
+          },
+          "resolver_knowledge": {
+            "team_hint_correct": 1,
+            "briefing_names_resolver": 1,
+            "primary_resolver_identified": 1,
+            "any": 1
+          },
+          "recurrence_detection": {
+            "structured_flag": 1,
+            "occurrence_number_exact": 1,
+            "text_mentions_recurrence": 0,
+            "detected": 1
+          }
+        },
+        "composite": 0.9333,
+        "memory_state": "matched",
+        "template_fallback": false,
+        "live_bank_evidence": []
+      },
+      "verdict": "recallops"
+    },
+    {
+      "case_id": "C10",
+      "pattern": "redis_oom_session_store",
+      "service": "auth-service",
+      "demo_tuned": false,
+      "title": "Users being logged out en masse; session lookups failing overnight",
+      "A": {
+        "ok": true,
+        "degraded": false,
+        "latency_s": 3.281,
+        "model_used": "openai/gpt-oss-120b",
+        "scores": {
+          "root_cause": {
+            "generic": 1,
+            "specific": 0,
+            "groups_matched": []
+          },
+          "worked_fix": {
+            "any_of_actions": 1,
+            "first_action": 0,
+            "matched_fix_types": [
+              "flush_expired_and_stale_sessions"
+            ]
+          },
+          "failed_fix_avoidance": null,
+          "unsupported_claims": {
+            "count": 0,
+            "clean": 1,
+            "claims": []
+          },
+          "actionability": {
+            "score": 0,
+            "concrete_first_action": 0,
+            "specific_artifacts": 0,
+            "verification_criterion": 0
+          },
+          "failed_fix_warning": "N/A",
+          "evidence_retrieval": "N/A",
+          "resolver_knowledge": "N/A",
+          "recurrence_detection": "N/A",
+          "incidental_failed_fix_warning_unscored": null
+        },
+        "composite": 0.5
+      },
+      "B": {
+        "ok": true,
+        "degraded": false,
+        "latency_s": 10.082,
+        "model_used": [
+          "openai/gpt-oss-120b"
+        ],
+        "scores": {
+          "root_cause": {
+            "generic": 1,
+            "specific": 1,
+            "groups_matched": [
+              0,
+              1
+            ]
+          },
+          "worked_fix": {
+            "any_of_actions": 1,
+            "first_action": 1,
+            "matched_fix_types": [
+              "flush_expired_and_stale_sessions"
+            ]
+          },
+          "failed_fix_avoidance": null,
+          "unsupported_claims": {
+            "count": 0,
+            "clean": 1,
+            "claims": []
+          },
+          "actionability": {
+            "score": 2,
+            "concrete_first_action": 1,
+            "specific_artifacts": 1,
+            "verification_criterion": 0
+          },
+          "failed_fix_warning": null,
+          "evidence_retrieval": {
+            "retrieved_ids": [
+              "INC-019",
+              "INC-003",
+              "INC-008"
+            ],
+            "recall": 1.0,
+            "precision": 1.0,
+            "top1_expected": 1,
+            "any_expected": 1,
+            "briefing_cited_expected_recall": 1.0
+          },
+          "resolver_knowledge": {
+            "team_hint_correct": 1,
+            "briefing_names_resolver": 1,
+            "primary_resolver_identified": 1,
+            "any": 1
+          },
+          "recurrence_detection": {
+            "structured_flag": 1,
+            "occurrence_number_exact": 1,
+            "text_mentions_recurrence": 0,
+            "detected": 1
+          }
+        },
+        "composite": 0.9167,
+        "memory_state": "matched",
+        "template_fallback": false,
+        "live_bank_evidence": []
+      },
+      "verdict": "recallops"
+    },
+    {
+      "case_id": "C11",
+      "pattern": "k8s_oom_killed_memory_leak",
+      "service": "order-worker",
+      "demo_tuned": false,
+      "title": "Worker pods restarting in a loop after a dependency bump",
+      "A": {
+        "ok": true,
+        "degraded": false,
+        "latency_s": 4.069,
+        "model_used": "openai/gpt-oss-120b",
+        "scores": {
+          "root_cause": {
+            "generic": 1,
+            "specific": 0,
+            "groups_matched": [
+              1
+            ]
+          },
+          "worked_fix": {
+            "any_of_actions": 1,
+            "first_action": 0,
+            "matched_fix_types": [
+              "rollback_image_resize_library_version"
+            ]
+          },
+          "failed_fix_avoidance": null,
+          "unsupported_claims": {
+            "count": 0,
+            "clean": 1,
+            "claims": []
+          },
+          "actionability": {
+            "score": 1,
+            "concrete_first_action": 0,
+            "specific_artifacts": 1,
+            "verification_criterion": 0
+          },
+          "failed_fix_warning": "N/A",
+          "evidence_retrieval": "N/A",
+          "resolver_knowledge": "N/A",
+          "recurrence_detection": "N/A",
+          "incidental_failed_fix_warning_unscored": null
+        },
+        "composite": 0.5833
+      },
+      "B": {
+        "ok": true,
+        "degraded": false,
+        "latency_s": 6.144,
+        "model_used": [
+          "openai/gpt-oss-120b"
+        ],
+        "scores": {
+          "root_cause": {
+            "generic": 1,
+            "specific": 1,
+            "groups_matched": [
+              0,
+              1
+            ]
+          },
+          "worked_fix": {
+            "any_of_actions": 1,
+            "first_action": 1,
+            "matched_fix_types": [
+              "rollback_image_resize_library_version"
+            ]
+          },
+          "failed_fix_avoidance": null,
+          "unsupported_claims": {
+            "count": 0,
+            "clean": 1,
+            "claims": []
+          },
+          "actionability": {
+            "score": 2,
+            "concrete_first_action": 1,
+            "specific_artifacts": 0,
+            "verification_criterion": 1
+          },
+          "failed_fix_warning": null,
+          "evidence_retrieval": {
+            "retrieved_ids": [
+              "INC-016"
+            ],
+            "recall": 1.0,
+            "precision": 1.0,
+            "top1_expected": 1,
+            "any_expected": 1,
+            "briefing_cited_expected_recall": 1.0
+          },
+          "resolver_knowledge": {
+            "team_hint_correct": 1,
+            "briefing_names_resolver": 1,
+            "primary_resolver_identified": 1,
+            "any": 1
+          },
+          "recurrence_detection": {
+            "structured_flag": 1,
+            "occurrence_number_exact": 1,
+            "text_mentions_recurrence": 0,
+            "detected": 1
+          }
+        },
+        "composite": 0.9167,
+        "memory_state": "matched",
+        "template_fallback": false,
+        "live_bank_evidence": []
+      },
+      "verdict": "recallops"
+    },
+    {
+      "case_id": "C12",
+      "pattern": "search_slow_query_missing_index",
+      "service": "search-api",
+      "demo_tuned": false,
+      "title": "Product listing search suddenly slow after the index mapping migration",
+      "A": {
+        "ok": true,
+        "degraded": false,
+        "latency_s": 4.467,
+        "model_used": "openai/gpt-oss-120b",
+        "scores": {
+          "root_cause": {
+            "generic": 1,
+            "specific": 0,
+            "groups_matched": [
+              1,
+              2
+            ]
+          },
+          "worked_fix": {
+            "any_of_actions": 1,
+            "first_action": 0,
+            "matched_fix_types": [
+              "reindex_with_keyword_subfield_restored"
+            ]
+          },
+          "failed_fix_avoidance": null,
+          "unsupported_claims": {
+            "count": 0,
+            "clean": 1,
+            "claims": []
+          },
+          "actionability": {
+            "score": 0,
+            "concrete_first_action": 0,
+            "specific_artifacts": 0,
+            "verification_criterion": 0
+          },
+          "failed_fix_warning": "N/A",
+          "evidence_retrieval": "N/A",
+          "resolver_knowledge": "N/A",
+          "recurrence_detection": "N/A",
+          "incidental_failed_fix_warning_unscored": null
+        },
+        "composite": 0.5
+      },
+      "B": {
+        "ok": true,
+        "degraded": false,
+        "latency_s": 8.988,
+        "model_used": [
+          "openai/gpt-oss-120b"
+        ],
+        "scores": {
+          "root_cause": {
+            "generic": 1,
+            "specific": 1,
+            "groups_matched": [
+              0,
+              1,
+              2
+            ]
+          },
+          "worked_fix": {
+            "any_of_actions": 1,
+            "first_action": 1,
+            "matched_fix_types": [
+              "reindex_with_keyword_subfield_restored"
+            ]
+          },
+          "failed_fix_avoidance": null,
+          "unsupported_claims": {
+            "count": 0,
+            "clean": 1,
+            "claims": []
+          },
+          "actionability": {
+            "score": 2,
+            "concrete_first_action": 1,
+            "specific_artifacts": 1,
+            "verification_criterion": 0
+          },
+          "failed_fix_warning": null,
+          "evidence_retrieval": {
+            "retrieved_ids": [
+              "INC-001"
+            ],
+            "recall": 1.0,
+            "precision": 1.0,
+            "top1_expected": 1,
+            "any_expected": 1,
+            "briefing_cited_expected_recall": 1.0
+          },
+          "resolver_knowledge": {
+            "team_hint_correct": 1,
+            "briefing_names_resolver": 1,
+            "primary_resolver_identified": 1,
+            "any": 1
+          },
+          "recurrence_detection": {
+            "structured_flag": 1,
+            "occurrence_number_exact": 1,
+            "text_mentions_recurrence": 0,
+            "detected": 1
+          }
+        },
+        "composite": 0.9167,
+        "memory_state": "matched",
+        "template_fallback": false,
+        "live_bank_evidence": []
+      },
+      "verdict": "recallops"
+    },
+    {
+      "case_id": "C13",
+      "pattern": "opensearch_shard_allocation_failed",
+      "service": "search-api",
+      "demo_tuned": false,
+      "title": "Search cluster went RED after a data node restart",
+      "A": {
+        "ok": true,
+        "degraded": false,
+        "latency_s": 3.259,
+        "model_used": "openai/gpt-oss-120b",
+        "scores": {
+          "root_cause": {
+            "generic": 1,
+            "specific": 0,
+            "groups_matched": []
+          },
+          "worked_fix": {
+            "any_of_actions": 0,
+            "first_action": 0,
+            "matched_fix_types": []
+          },
+          "failed_fix_avoidance": null,
+          "unsupported_claims": {
+            "count": 0,
+            "clean": 1,
+            "claims": []
+          },
+          "actionability": {
+            "score": 0,
+            "concrete_first_action": 0,
+            "specific_artifacts": 0,
+            "verification_criterion": 0
+          },
+          "failed_fix_warning": "N/A",
+          "evidence_retrieval": "N/A",
+          "resolver_knowledge": "N/A",
+          "recurrence_detection": "N/A",
+          "incidental_failed_fix_warning_unscored": null
+        },
+        "composite": 0.25
+      },
+      "B": {
+        "ok": true,
+        "degraded": false,
+        "latency_s": 13.248,
+        "model_used": [
+          "openai/gpt-oss-120b"
+        ],
+        "scores": {
+          "root_cause": {
+            "generic": 1,
+            "specific": 1,
+            "groups_matched": [
+              0
+            ]
+          },
+          "worked_fix": {
+            "any_of_actions": 1,
+            "first_action": 1,
+            "matched_fix_types": [
+              "reroute_unassigned_shards"
+            ]
+          },
+          "failed_fix_avoidance": null,
+          "unsupported_claims": {
+            "count": 0,
+            "clean": 1,
+            "claims": []
+          },
+          "actionability": {
+            "score": 2,
+            "concrete_first_action": 1,
+            "specific_artifacts": 1,
+            "verification_criterion": 0
+          },
+          "failed_fix_warning": null,
+          "evidence_retrieval": {
+            "retrieved_ids": [
+              "INC-007",
+              "INC-018",
+              "INC-021",
+              "INC-002",
+              "INC-008",
+              "INC-001"
+            ],
+            "recall": 1.0,
+            "precision": 0.16666666666666666,
+            "top1_expected": 1,
+            "any_expected": 1,
+            "briefing_cited_expected_recall": 1.0
+          },
+          "resolver_knowledge": {
+            "team_hint_correct": 1,
+            "briefing_names_resolver": 1,
+            "primary_resolver_identified": 1,
+            "any": 1
+          },
+          "recurrence_detection": {
+            "structured_flag": 1,
+            "occurrence_number_exact": 1,
+            "text_mentions_recurrence": 0,
+            "detected": 1
+          }
+        },
+        "composite": 0.9167,
+        "memory_state": "matched",
+        "template_fallback": false,
+        "live_bank_evidence": []
+      },
+      "verdict": "recallops"
+    },
+    {
+      "case_id": "C14",
+      "pattern": "bad_feature_flag_regression",
+      "service": "search-api",
+      "demo_tuned": false,
+      "title": "Search timeouts and errors spiked once a new ranking flag reached full rollout",
+      "A": {
+        "ok": true,
+        "degraded": false,
+        "latency_s": 4.403,
+        "model_used": "openai/gpt-oss-120b",
+        "scores": {
+          "root_cause": {
+            "generic": 1,
+            "specific": 1,
+            "groups_matched": [
+              0,
+              1
+            ]
+          },
+          "worked_fix": {
+            "any_of_actions": 0,
+            "first_action": 0,
+            "matched_fix_types": []
+          },
+          "failed_fix_avoidance": null,
+          "unsupported_claims": {
+            "count": 0,
+            "clean": 1,
+            "claims": []
+          },
+          "actionability": {
+            "score": 1,
+            "concrete_first_action": 1,
+            "specific_artifacts": 0,
+            "verification_criterion": 0
+          },
+          "failed_fix_warning": "N/A",
+          "evidence_retrieval": "N/A",
+          "resolver_knowledge": "N/A",
+          "recurrence_detection": "N/A",
+          "incidental_failed_fix_warning_unscored": null
+        },
+        "composite": 0.5833
+      },
+      "B": {
+        "ok": true,
+        "degraded": false,
+        "latency_s": 7.231,
+        "model_used": [
+          "openai/gpt-oss-120b"
+        ],
+        "scores": {
+          "root_cause": {
+            "generic": 1,
+            "specific": 1,
+            "groups_matched": [
+              0,
+              1
+            ]
+          },
+          "worked_fix": {
+            "any_of_actions": 1,
+            "first_action": 1,
+            "matched_fix_types": [
+              "disable_feature_flag"
+            ]
+          },
+          "failed_fix_avoidance": null,
+          "unsupported_claims": {
+            "count": 0,
+            "clean": 1,
+            "claims": []
+          },
+          "actionability": {
+            "score": 2,
+            "concrete_first_action": 1,
+            "specific_artifacts": 1,
+            "verification_criterion": 0
+          },
+          "failed_fix_warning": null,
+          "evidence_retrieval": {
+            "retrieved_ids": [
+              "INC-014"
+            ],
+            "recall": 1.0,
+            "precision": 1.0,
+            "top1_expected": 1,
+            "any_expected": 1,
+            "briefing_cited_expected_recall": 1.0
+          },
+          "resolver_knowledge": {
+            "team_hint_correct": 1,
+            "briefing_names_resolver": 1,
+            "primary_resolver_identified": 1,
+            "any": 1
+          },
+          "recurrence_detection": {
+            "structured_flag": 1,
+            "occurrence_number_exact": 1,
+            "text_mentions_recurrence": 0,
+            "detected": 1
+          }
+        },
+        "composite": 0.9167,
+        "memory_state": "matched",
+        "template_fallback": false,
+        "live_bank_evidence": []
+      },
+      "verdict": "recallops"
+    },
+    {
+      "case_id": "C15",
+      "pattern": "webhook_signature_mismatch",
+      "service": "payments-api",
+      "demo_tuned": false,
+      "title": "Payment gateway callbacks all rejected and orders stuck in pending",
+      "A": {
+        "ok": true,
+        "degraded": false,
+        "latency_s": 3.384,
+        "model_used": "openai/gpt-oss-120b",
+        "scores": {
+          "root_cause": {
+            "generic": 1,
+            "specific": 0,
+            "groups_matched": []
+          },
+          "worked_fix": {
+            "any_of_actions": 0,
+            "first_action": 0,
+            "matched_fix_types": []
+          },
+          "failed_fix_avoidance": null,
+          "unsupported_claims": {
+            "count": 0,
+            "clean": 1,
+            "claims": []
+          },
+          "actionability": {
+            "score": 1,
+            "concrete_first_action": 0,
+            "specific_artifacts": 0,
+            "verification_criterion": 1
+          },
+          "failed_fix_warning": "N/A",
+          "evidence_retrieval": "N/A",
+          "resolver_knowledge": "N/A",
+          "recurrence_detection": "N/A",
+          "incidental_failed_fix_warning_unscored": null
+        },
+        "composite": 0.3333
+      },
+      "B": {
+        "ok": true,
+        "degraded": false,
+        "latency_s": 11.397,
+        "model_used": [
+          "openai/gpt-oss-120b"
+        ],
+        "scores": {
+          "root_cause": {
+            "generic": 1,
+            "specific": 1,
+            "groups_matched": [
+              0,
+              1
+            ]
+          },
+          "worked_fix": {
+            "any_of_actions": 1,
+            "first_action": 1,
+            "matched_fix_types": [
+              "update_webhook_secret_from_vault"
+            ]
+          },
+          "failed_fix_avoidance": null,
+          "unsupported_claims": {
+            "count": 0,
+            "clean": 1,
+            "claims": []
+          },
+          "actionability": {
+            "score": 3,
+            "concrete_first_action": 1,
+            "specific_artifacts": 1,
+            "verification_criterion": 1
+          },
+          "failed_fix_warning": null,
+          "evidence_retrieval": {
+            "retrieved_ids": [
+              "INC-013",
+              "INC-004",
+              "INC-015",
+              "INC-002",
+              "INC-021",
+              "INC-011"
+            ],
+            "recall": 1.0,
+            "precision": 0.16666666666666666,
+            "top1_expected": 1,
+            "any_expected": 1,
+            "briefing_cited_expected_recall": 1.0
+          },
+          "resolver_knowledge": {
+            "team_hint_correct": 1,
+            "briefing_names_resolver": 1,
+            "primary_resolver_identified": 1,
+            "any": 1
+          },
+          "recurrence_detection": {
+            "structured_flag": 1,
+            "occurrence_number_exact": 1,
+            "text_mentions_recurrence": 0,
+            "detected": 1
+          }
+        },
+        "composite": 1.0,
+        "memory_state": "matched",
+        "template_fallback": false,
+        "live_bank_evidence": []
+      },
+      "verdict": "recallops"
+    }
+  ]
+}

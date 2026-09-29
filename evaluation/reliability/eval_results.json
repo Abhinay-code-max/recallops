@@ -1,0 +1,152 @@
+{
+  "group_b": {
+    "/health": {
+      "status": 200,
+      "latency_ms": 1458.47149999463,
+      "schema_ok": true,
+      "details": "All expected keys present: ['status', 'memory', 'seeding']"
+    },
+    "/demo-alerts": {
+      "status": 200,
+      "latency_ms": 3.227799999876879,
+      "schema_ok": true,
+      "details": "List of 5 items"
+    },
+    "/incidents": {
+      "status": 200,
+      "latency_ms": 1.9198000081814826,
+      "schema_ok": true,
+      "details": "List of 22 items"
+    },
+    "/metrics": {
+      "status": 200,
+      "latency_ms": 3.665199998067692,
+      "schema_ok": true,
+      "details": "All expected keys present: ['counts', 'historical_avg_mttr_min', 'real_series', 'simulated_series', 'simulated']"
+    },
+    "/insights": {
+      "status": 200,
+      "latency_ms": 2.532899990910664,
+      "schema_ok": true,
+      "details": "All expected keys present: ['patterns', 'recurring', 'open_permanent_fixes', 'team_knowledge', 'fix_speed_comparison', 'reflect_summary', 'reflect_status']"
+    }
+  },
+  "group_c": {
+    "stages": [
+      {
+        "stage": "1. alert ingestion",
+        "status": "PASS",
+        "latency_ms": 3348.4202999970876,
+        "info": "incident_id=INC-023, memory_state=matched"
+      },
+      {
+        "stage": "2. recall & evidence",
+        "status": "PASS",
+        "latency_ms": 3348.4202999970876,
+        "info": "4 evidence items retrieved"
+      },
+      {
+        "stage": "3. ranked fixes",
+        "status": "PASS",
+        "latency_ms": 3348.4202999970876,
+        "info": "4 ranked fixes returned; top=increase_postgres_pool_size"
+      },
+      {
+        "stage": "4. briefing SSE",
+        "status": "PASS",
+        "latency_ms": 3686.3672000035876,
+        "info": "28 events (tokens=True, sections=True, done=True)"
+      },
+      {
+        "stage": "5. grounded chat",
+        "status": "PASS",
+        "latency_ms": 1843.944799999008,
+        "info": "answer length=196, evidence_count=4"
+      },
+      {
+        "stage": "6. compare mode",
+        "status": "PASS",
+        "latency_ms": 3878.5192999930587,
+        "info": "has without_memory and with_memory sections"
+      },
+      {
+        "stage": "7. operator feedback",
+        "status": "PASS",
+        "latency_ms": 2145.617799993488,
+        "info": "memories_stored=1"
+      },
+      {
+        "stage": "8. incident resolution",
+        "status": "PASS",
+        "latency_ms": 4336.475000003702,
+        "info": "status=resolved, memories_stored=1"
+      },
+      {
+        "stage": "9. postmortem generation",
+        "status": "PASS",
+        "latency_ms": 4336.475000003702,
+        "info": "timeline_events=7, action_items=5"
+      },
+      {
+        "stage": "10. insights retrieval",
+        "status": "PASS",
+        "latency_ms": 1.7725999932736158,
+        "info": "patterns=16, recurring=3"
+      },
+      {
+        "stage": "11. metrics telemetry",
+        "status": "PASS",
+        "latency_ms": 3.1411000090884045,
+        "info": "incidents_handled=23, mttr=19.18m"
+      }
+    ]
+  },
+  "group_d": {
+    "stream_opened": true,
+    "ttfe_ms": 803.8816999905976,
+    "total_stream_dur_ms": 804.4072999909986,
+    "token_events_count": 26,
+    "sections_event_present": true,
+    "done_event_present": true,
+    "clean_termination": true,
+    "recalled_evidence_count": 5,
+    "cited_incident_ids": [
+      "INC-002",
+      "INC-009",
+      "INC-021"
+    ],
+    "citations_guard_passed": true,
+    "citations_non_empty": true
+  },
+  "group_e": {
+    "first_submission": {
+      "incident_id": "INC-023",
+      "deduplicated": true
+    },
+    "duplicate_submission_within_window": {
+      "incident_id": "INC-023",
+      "deduplicated": true,
+      "matched_first_id": true
+    },
+    "different_alert_submission": {
+      "incident_id": "INC-024",
+      "deduplicated": false,
+      "is_distinct": true
+    },
+    "uncontrolled_duplicate_prevented": true,
+    "total_open_incidents_in_ledger": 1
+  },
+  "group_f": {
+    "hindsight_down": {
+      "status_code": 200,
+      "degraded_flag": true,
+      "verdict": "PASS"
+    },
+    "groq_down": {
+      "status_code": 200,
+      "fallback_template_served": true,
+      "citations_guarded": true,
+      "verdict": "PASS"
+    }
+  }
+}

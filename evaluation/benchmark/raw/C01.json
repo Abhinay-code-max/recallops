@@ -1,0 +1,260 @@
+{
+  "case_id": "C01",
+  "alert": {
+    "title": "Checkout errors spiking after Friday deploy",
+    "service": "payments-api",
+    "severity": "SEV1",
+    "submitted_at": "2026-09-11T15:02:00Z",
+    "symptoms": "Checkout requests failing with database connection errors; p99 latency 4.9s, error rate 25%, starting about 10 minutes after the v2.6.0 Friday deploy.",
+    "error_message": "org.postgresql.util.PSQLException: FATAL: remaining connection slots are reserved for non-replication superuser connections",
+    "log_snippet": "2026-09-11T15:02:00Z ERROR payments-api [pool-2] org.postgresql.util.PSQLException: FATAL: remaining connection slots are reserved for non-replication superuser connections\np99_latency=4910ms error_rate=25.0% deploy=v2.6.0 (10 min ago)"
+  },
+  "A": {
+    "ok": true,
+    "degraded": false,
+    "model_used": "openai/gpt-oss-120b",
+    "latency_s": 2.291,
+    "response": {
+      "root_cause": "Connection pool exhaustion in payments-api after v2.6.0 deploy, causing PostgreSQL to reject new connections (remaining connection slots reserved for superuser)",
+      "blast_radius": "All checkout transactions through payments-api are failing, affecting any customer attempting to purchase, leading to revenue loss and potential churn",
+      "first_actions": [
+        "Inspect DB connection pool usage and pg_stat_activity for runaway connections",
+        "Rollback or hot-fix the v2.6.0 release of payments-api",
+        "Temporarily increase PostgreSQL max_connections or restart the payments-api service to clear connections"
+      ],
+      "last_fixed_by": null
+    },
+    "raw_text": "{\"root_cause\":\"Connection pool exhaustion in payments-api after v2.6.0 deploy, causing PostgreSQL to reject new connections (remaining connection slots reserved for superuser)\",\"blast_radius\":\"All checkout transactions through payments-api are failing, affecting any customer attempting to purchase, leading to revenue loss and potential churn\",\"first_actions\":[\"Inspect DB connection pool usage and pg_stat_activity for runaway connections\",\"Rollback or hot-fix the v2.6.0 release of payments-api\",\"Temporarily increase PostgreSQL max_connections or restart the payments-api service to clear connections\"],\"last_fixed_by\":null}",
+    "llm_calls": [
+      {
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are an incident response assistant writing a short triage briefing for a new alert. You only have the alert below.\nRespond with strict JSON only: {\"root_cause\": string, \"blast_radius\": string, \"first_actions\": [string, string, string], \"last_fixed_by\": string or null}"
+          },
+          {
+            "role": "user",
+            "content": "New alert: Checkout errors spiking after Friday deploy. Service: payments-api, severity: SEV1.\nSymptoms: Checkout requests failing with database connection errors; p99 latency 4.9s, error rate 25%, starting about 10 minutes after the v2.6.0 Friday deploy.\nError: org.postgresql.util.PSQLException: FATAL: remaining connection slots are reserved for non-replication superuser connections"
+          }
+        ],
+        "kwargs": {
+          "json_mode": true
+        },
+        "text": "{\"root_cause\":\"Connection pool exhaustion in payments-api after v2.6.0 deploy, causing PostgreSQL to reject new connections (remaining connection slots reserved for superuser)\",\"blast_radius\":\"All checkout transactions through payments-api are failing, affecting any customer attempting to purchase, leading to revenue loss and potential churn\",\"first_actions\":[\"Inspect DB connection pool usage and pg_stat_activity for runaway connections\",\"Rollback or hot-fix the v2.6.0 release of payments-api\",\"Temporarily increase PostgreSQL max_connections or restart the payments-api service to clear connections\"],\"last_fixed_by\":null}",
+        "degraded": false,
+        "model_used": "openai/gpt-oss-120b",
+        "parsed": {
+          "root_cause": "Connection pool exhaustion in payments-api after v2.6.0 deploy, causing PostgreSQL to reject new connections (remaining connection slots reserved for superuser)",
+          "blast_radius": "All checkout transactions through payments-api are failing, affecting any customer attempting to purchase, leading to revenue loss and potential churn",
+          "first_actions": [
+            "Inspect DB connection pool usage and pg_stat_activity for runaway connections",
+            "Rollback or hot-fix the v2.6.0 release of payments-api",
+            "Temporarily increase PostgreSQL max_connections or restart the payments-api service to clear connections"
+          ],
+          "last_fixed_by": null
+        },
+        "seconds": 2.291
+      }
+    ]
+  },
+  "B": {
+    "ok": true,
+    "degraded": false,
+    "degraded_reason": null,
+    "path": "generate_sections",
+    "template_fallback": false,
+    "latency_s": 3.25,
+    "analysis_latency_s": 1.571,
+    "models_used": [
+      "openai/gpt-oss-120b"
+    ],
+    "response": {
+      "root_cause": "The checkout failures are caused by the recurring order\u2011confirmation retry path that opens a new PostgreSQL session for each retry and never releases it on timeout, exhausting the 20\u2011connection pool (as seen in INC-002).",
+      "blast_radius": "All checkout requests on payments\u2011api experience elevated latency (p99 ~5s) and a ~25% error rate, affecting any user attempting to complete a purchase during peak Friday traffic.",
+      "first_actions": [
+        "increase_postgres_pool_size",
+        "kill_idle_db_connections",
+        "restart_payments_pods"
+      ],
+      "last_fixed_by": null
+    },
+    "cited_incident_ids": [
+      "INC-002",
+      "INC-009",
+      "INC-021"
+    ],
+    "structured": {
+      "memory_state": "matched",
+      "evidence": [
+        {
+          "incident_id": "INC-002",
+          "date": "2026-05-15T14:32:10Z",
+          "relative": "3 months ago",
+          "service": "payments-api",
+          "severity": "SEV1",
+          "excerpt": "payments-api p99 latency above 4.8s and checkout error rate above 23% starting ~12 minutes after the v2.3.0 Friday deploy; new checkouts failing with DB connec\u2026",
+          "relevance": 0.8248,
+          "source_bank": "incidents"
+        },
+        {
+          "incident_id": "INC-021",
+          "date": "2026-08-28T15:55:08Z",
+          "relative": "13 days ago",
+          "service": "payments-api",
+          "severity": "SEV1",
+          "excerpt": "Same signature as INC-002/INC-009/INC-017: p99 latency above 4.9s and checkout errors above 24% about 8 minutes after the v2.5.0 Friday deploy.",
+          "relevance": 0.7282,
+          "source_bank": "incidents"
+        },
+        {
+          "incident_id": "INC-009",
+          "date": "2026-06-19T15:10:47Z",
+          "relative": "2 months ago",
+          "service": "payments-api",
+          "severity": "SEV1",
+          "excerpt": "Same signature as INC-002: p99 latency above 4.6s and checkout errors above 20% about 15 minutes after the v2.3.1 Friday deploy.",
+          "relevance": 0.6982,
+          "source_bank": "incidents"
+        },
+        {
+          "incident_id": "INC-017",
+          "date": "2026-07-24T14:48:51Z",
+          "relative": "7 weeks ago",
+          "service": "payments-api",
+          "severity": "SEV1",
+          "excerpt": "Same signature as INC-002/INC-009: p99 latency above 4.7s and checkout errors above 22% about 10 minutes after the v2.4.0 Friday deploy.",
+          "relevance": 0.472,
+          "source_bank": "incidents"
+        }
+      ],
+      "ranked_fixes": [
+        {
+          "rank": 1,
+          "fix_type": "increase_postgres_pool_size",
+          "label": "Increase postgres pool size",
+          "score": 0.6598,
+          "similarity": 0.8248,
+          "worked": 3,
+          "partial": 0,
+          "failed": 0,
+          "attempts": 3,
+          "recent_failures": 0,
+          "last_used_incident_id": "INC-021"
+        },
+        {
+          "rank": 2,
+          "fix_type": "kill_idle_db_connections",
+          "label": "Kill idle db connections",
+          "score": 0.4364,
+          "similarity": 0.6982,
+          "worked": 1,
+          "partial": 1,
+          "failed": 0,
+          "attempts": 2,
+          "recent_failures": 0,
+          "last_used_incident_id": "INC-017"
+        },
+        {
+          "rank": 3,
+          "fix_type": "restart_payments_pods",
+          "label": "Restart payments pods",
+          "score": 0.4124,
+          "similarity": 0.8248,
+          "worked": 0,
+          "partial": 1,
+          "failed": 0,
+          "attempts": 1,
+          "recent_failures": 0,
+          "last_used_incident_id": "INC-002"
+        },
+        {
+          "rank": 4,
+          "fix_type": "rollback_to_previous_deploy",
+          "label": "Rollback to previous deploy",
+          "score": -0.0938,
+          "similarity": 0.8248,
+          "worked": 0,
+          "partial": 0,
+          "failed": 2,
+          "attempts": 2,
+          "recent_failures": 1,
+          "last_used_incident_id": "INC-017"
+        }
+      ],
+      "warnings": [
+        {
+          "kind": "failed_fix",
+          "message": "Rollback to previous deploy failed 2 of 2 time(s) for this pattern -- try another fix first.",
+          "incident_ids": [
+            "INC-002",
+            "INC-017"
+          ]
+        },
+        {
+          "kind": "recurrence",
+          "message": "This is occurrence #5 of this pattern, recurring roughly every 35 days. The permanent fix from INC-021 is still open.",
+          "incident_ids": [
+            "INC-002",
+            "INC-009",
+            "INC-017",
+            "INC-021"
+          ]
+        },
+        {
+          "kind": "open_permanent_fix",
+          "message": "The permanent fix for this pattern (raised in INC-021's postmortem) is still open.",
+          "incident_ids": [
+            "INC-021"
+          ]
+        }
+      ],
+      "team_hint": {
+        "person": "Priya Nair",
+        "reason": "Resolved 4 incidents matching this pattern with a working fix.",
+        "incident_ids": [
+          "INC-002",
+          "INC-009",
+          "INC-017",
+          "INC-021"
+        ]
+      },
+      "recurrence": {
+        "occurrence_number": 5,
+        "interval_days_avg": 35.0,
+        "open_permanent_fix_incident_id": "INC-021",
+        "message": "This is occurrence #5 of this pattern, recurring roughly every 35 days. The permanent fix from INC-021 is still open."
+      }
+    },
+    "llm_calls": [
+      {
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are an incident response assistant writing a short triage briefing. Use ONLY the evidence incidents listed below. You may reference an incident ID (like INC-002) ONLY if it appears in that evidence list -- never invent or cite any other incident ID, and never make one up.\nRULES:\n  1. first_actions[0] MUST recommend the top-ranked fix: 'increase_postgres_pool_size'.\n  2. No first_action may recommend any fix whose ledger failures exceed its successes.\n  3. Cite at least one evidence incident ID somewhere in root_cause or first_actions.\nRespond with strict JSON only: {\"root_cause\": string, \"blast_radius\": string, \"first_actions\": [string, string, string], \"last_fixed_by\": string or null}"
+          },
+          {
+            "role": "user",
+            "content": "New alert: Checkout errors spiking after Friday deploy. Service: payments-api, severity: SEV1.\nSymptoms: Checkout requests failing with database connection errors; p99 latency 4.9s, error rate 25%, starting about 10 minutes after the v2.6.0 Friday deploy.\nError: org.postgresql.util.PSQLException: FATAL: remaining connection slots are reserved for non-replication superuser connections\n\nEvidence (only these incidents may be cited):\nIncident INC-002 (payments-api, SEV1, 2026-05-15T14:32:10Z):\nSymptoms: payments-api p99 latency above 4.8s and checkout error rate above 23% starting ~12 minutes after the v2.3.0 Friday deploy; new checkouts failing with DB connection errors.\nRoot cause: The v2.3.0 deploy's new order-confirmation retry path opens a DB session per retry without releasing it on timeout, exhausting the 20-connection Postgres pool within minutes of Friday peak traffic.\nResolver: Priya Nair\n\nIncident INC-021 (payments-api, SEV1, 2026-08-28T15:55:08Z):\nSymptoms: Same signature as INC-002/INC-009/INC-017: p99 latency above 4.9s and checkout errors above 24% about 8 minutes after the v2.5.0 Friday deploy.\nRoot cause: Fourth occurrence of the same unfixed order-confirmation session leak, triggered by the v2.5.0 Friday deploy.\nResolver: Priya Nair\n\nIncident INC-009 (payments-api, SEV1, 2026-06-19T15:10:47Z):\nSymptoms: Same signature as INC-002: p99 latency above 4.6s and checkout errors above 20% about 15 minutes after the v2.3.1 Friday deploy.\nRoot cause: Same order-confirmation retry session leak as INC-002 (still unfixed in code), triggered again by Friday deploy traffic.\nResolver: Priya Nair\n\nIncident INC-017 (payments-api, SEV1, 2026-07-24T14:48:51Z):\nSymptoms: Same signature as INC-002/INC-009: p99 latency above 4.7s and checkout errors above 22% about 10 minutes after the v2.4.0 Friday deploy.\nRoot cause: Same unresolved order-confirmation session leak, now triggered a third time by the v2.4.0 Friday deploy.\nResolver: Priya Nair\n\nRanked fixes (use the top one as first_actions[0]):\n  1. increase_postgres_pool_size (score=+0.660, worked=3, partial=0, failed=0, recent_failures=0)\n  2. kill_idle_db_connections (score=+0.436, worked=1, partial=1, failed=0, recent_failures=0)\n  3. restart_payments_pods (score=+0.412, worked=0, partial=1, failed=0, recent_failures=0)\n  4. rollback_to_previous_deploy (score=-0.094, worked=0, partial=0, failed=2, recent_failures=1)\nRISKY fixes -- ledger failures exceed successes (do NOT recommend these in any first_action, not even as a last resort): rollback_to_previous_deploy\nRecurrence: This is occurrence #5 of this pattern, recurring roughly every 35 days. The permanent fix from INC-021 is still open.\nTeam expert: Priya Nair (Resolved 4 incidents matching this pattern with a working fix.)"
+          }
+        ],
+        "kwargs": {
+          "json_mode": true
+        },
+        "text": "{\"root_cause\":\"The checkout failures are caused by the recurring order\u2011confirmation retry path that opens a new PostgreSQL session for each retry and never releases it on timeout, exhausting the 20\u2011connection pool (as seen in INC-002).\",\"blast_radius\":\"All checkout requests on payments\u2011api experience elevated latency (p99 ~5s) and a ~25% error rate, affecting any user attempting to complete a purchase during peak Friday traffic.\",\"first_actions\":[\"increase_postgres_pool_size\",\"kill_idle_db_connections\",\"restart_payments_pods\"],\"last_fixed_by\":null}",
+        "degraded": false,
+        "model_used": "openai/gpt-oss-120b",
+        "parsed": {
+          "root_cause": "The checkout failures are caused by the recurring order\u2011confirmation retry path that opens a new PostgreSQL session for each retry and never releases it on timeout, exhausting the 20\u2011connection pool (as seen in INC-002).",
+          "blast_radius": "All checkout requests on payments\u2011api experience elevated latency (p99 ~5s) and a ~25% error rate, affecting any user attempting to complete a purchase during peak Friday traffic.",
+          "first_actions": [
+            "increase_postgres_pool_size",
+            "kill_idle_db_connections",
+            "restart_payments_pods"
+          ],
+          "last_fixed_by": null
+        },
+        "seconds": 1.678
+      }
+    ]
+  }
+}

@@ -1,0 +1,220 @@
+{
+  "case_id": "C15",
+  "alert": {
+    "title": "Payment gateway callbacks all rejected and orders stuck in pending",
+    "service": "payments-api",
+    "severity": "SEV2",
+    "submitted_at": "2026-09-27T09:05:00Z",
+    "symptoms": "Since about 09:00 UTC every callback from the payment gateway is rejected with a signature verification error; orders remain in 'pending' even though customers were charged.",
+    "error_message": "SignatureVerificationError: webhook signature mismatch",
+    "log_snippet": "2026-09-27T09:05:00Z ERROR payments-api [webhook-handler] SignatureVerificationError: webhook signature mismatch provider=gatewaypay\nrejected_events=188 error_rate=100.0%"
+  },
+  "A": {
+    "ok": true,
+    "degraded": false,
+    "model_used": "openai/gpt-oss-120b",
+    "latency_s": 3.384,
+    "response": {
+      "root_cause": "Possible mismatch of webhook signing secret or algorithm change causing SignatureVerificationError",
+      "blast_radius": "All payment gateway callbacks to payments-api are failing, causing every order to remain pending and customers to be charged without order completion",
+      "first_actions": [
+        "Verify the webhook signing secret/configuration in payments-api matches the payment gateway settings",
+        "Check recent code deployments or config changes that might have altered signature verification logic",
+        "Inspect logs for the exact mismatch details and test the webhook endpoint with a known valid signature"
+      ],
+      "last_fixed_by": null
+    },
+    "raw_text": "{\"root_cause\":\"Possible mismatch of webhook signing secret or algorithm change causing SignatureVerificationError\",\"blast_radius\":\"All payment gateway callbacks to payments-api are failing, causing every order to remain pending and customers to be charged without order completion\",\"first_actions\":[\"Verify the webhook signing secret/configuration in payments-api matches the payment gateway settings\",\"Check recent code deployments or config changes that might have altered signature verification logic\",\"Inspect logs for the exact mismatch details and test the webhook endpoint with a known valid signature\"],\"last_fixed_by\":null}",
+    "llm_calls": [
+      {
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are an incident response assistant writing a short triage briefing for a new alert. You only have the alert below.\nRespond with strict JSON only: {\"root_cause\": string, \"blast_radius\": string, \"first_actions\": [string, string, string], \"last_fixed_by\": string or null}"
+          },
+          {
+            "role": "user",
+            "content": "New alert: Payment gateway callbacks all rejected and orders stuck in pending. Service: payments-api, severity: SEV2.\nSymptoms: Since about 09:00 UTC every callback from the payment gateway is rejected with a signature verification error; orders remain in 'pending' even though customers were charged.\nError: SignatureVerificationError: webhook signature mismatch"
+          }
+        ],
+        "kwargs": {
+          "json_mode": true
+        },
+        "text": "{\"root_cause\":\"Possible mismatch of webhook signing secret or algorithm change causing SignatureVerificationError\",\"blast_radius\":\"All payment gateway callbacks to payments-api are failing, causing every order to remain pending and customers to be charged without order completion\",\"first_actions\":[\"Verify the webhook signing secret/configuration in payments-api matches the payment gateway settings\",\"Check recent code deployments or config changes that might have altered signature verification logic\",\"Inspect logs for the exact mismatch details and test the webhook endpoint with a known valid signature\"],\"last_fixed_by\":null}",
+        "degraded": false,
+        "model_used": "openai/gpt-oss-120b",
+        "parsed": {
+          "root_cause": "Possible mismatch of webhook signing secret or algorithm change causing SignatureVerificationError",
+          "blast_radius": "All payment gateway callbacks to payments-api are failing, causing every order to remain pending and customers to be charged without order completion",
+          "first_actions": [
+            "Verify the webhook signing secret/configuration in payments-api matches the payment gateway settings",
+            "Check recent code deployments or config changes that might have altered signature verification logic",
+            "Inspect logs for the exact mismatch details and test the webhook endpoint with a known valid signature"
+          ],
+          "last_fixed_by": null
+        },
+        "seconds": 3.384
+      }
+    ]
+  },
+  "B": {
+    "ok": true,
+    "degraded": false,
+    "degraded_reason": null,
+    "path": "generate_sections",
+    "template_fallback": false,
+    "latency_s": 11.397,
+    "analysis_latency_s": 1.53,
+    "models_used": [
+      "openai/gpt-oss-120b"
+    ],
+    "response": {
+      "root_cause": "The payment gateway rotated its webhook signing secret; payments\u2011api continued to validate signatures against the stale secret cached in its config (see INC-013).",
+      "blast_radius": "All inbound payment\u2011gateway callbacks are rejected, causing every order to remain in a pending state and preventing revenue capture for all customers during the outage.",
+      "first_actions": [
+        "update_webhook_secret_from_vault",
+        "clear_webhook_secret_cache_in_payments_api",
+        "verify_vault_secret_sync_and_add_monitoring_for_signature_errors"
+      ],
+      "last_fixed_by": "Priya Nair"
+    },
+    "cited_incident_ids": [
+      "INC-004",
+      "INC-013",
+      "INC-015"
+    ],
+    "structured": {
+      "memory_state": "matched",
+      "evidence": [
+        {
+          "incident_id": "INC-013",
+          "date": "2026-07-06T12:15:38Z",
+          "relative": "2 months ago",
+          "service": "payments-api",
+          "severity": "SEV2",
+          "excerpt": "Payment gateway webhook events (payment.succeeded, payment.failed) all rejected with signature verification errors since ~12:00 UTC; order status stuck in 'pen\u2026",
+          "relevance": 1.0,
+          "source_bank": "incidents"
+        },
+        {
+          "incident_id": "INC-004",
+          "date": "2026-05-20T11:47:03Z",
+          "relative": "4 months ago",
+          "service": "notification-service",
+          "severity": "SEV3",
+          "excerpt": "Order confirmation and shipping emails delayed 15-40 minutes; SMTP send queue backing up.",
+          "relevance": 0.8386,
+          "source_bank": "incidents"
+        },
+        {
+          "incident_id": "INC-015",
+          "date": "2026-07-13T05:19:44Z",
+          "relative": "2 months ago",
+          "service": "order-worker",
+          "severity": "SEV2",
+          "excerpt": "Third Monday-morning Redis OOM; same signature as INC-003 and INC-008.",
+          "relevance": 0.6577,
+          "source_bank": "incidents"
+        },
+        {
+          "incident_id": "INC-002",
+          "date": "2026-05-15T14:32:10Z",
+          "relative": "4 months ago",
+          "service": "payments-api",
+          "severity": "SEV1",
+          "excerpt": "payments-api p99 latency above 4.8s and checkout error rate above 23% starting ~12 minutes after the v2.3.0 Friday deploy; new checkouts failing with DB connec\u2026",
+          "relevance": 0.6123,
+          "source_bank": "incidents"
+        },
+        {
+          "incident_id": "INC-021",
+          "date": "2026-08-28T15:55:08Z",
+          "relative": "4 weeks ago",
+          "service": "payments-api",
+          "severity": "SEV1",
+          "excerpt": "Same signature as INC-002/INC-009/INC-017: p99 latency above 4.9s and checkout errors above 24% about 8 minutes after the v2.5.0 Friday deploy.",
+          "relevance": 0.5452,
+          "source_bank": "incidents"
+        },
+        {
+          "incident_id": "INC-011",
+          "date": "2026-06-29T08:41:17Z",
+          "relative": "3 months ago",
+          "service": "auth-service",
+          "severity": "SEV3",
+          "excerpt": "Google OAuth login failing intermittently for ~4% of attempts with upstream 500 errors.",
+          "relevance": 0.5328,
+          "source_bank": "incidents"
+        }
+      ],
+      "ranked_fixes": [
+        {
+          "rank": 1,
+          "fix_type": "update_webhook_secret_from_vault",
+          "label": "Update webhook secret from vault",
+          "score": 0.6667,
+          "similarity": 1.0,
+          "worked": 1,
+          "partial": 0,
+          "failed": 0,
+          "attempts": 1,
+          "recent_failures": 0,
+          "last_used_incident_id": "INC-013"
+        }
+      ],
+      "warnings": [
+        {
+          "kind": "recurrence",
+          "message": "This is occurrence #2 of this pattern.",
+          "incident_ids": [
+            "INC-013"
+          ]
+        }
+      ],
+      "team_hint": {
+        "person": "Priya Nair",
+        "reason": "Resolved 1 incident matching this pattern with a working fix.",
+        "incident_ids": [
+          "INC-013"
+        ]
+      },
+      "recurrence": {
+        "occurrence_number": 2,
+        "interval_days_avg": null,
+        "open_permanent_fix_incident_id": null,
+        "message": "This is occurrence #2 of this pattern."
+      }
+    },
+    "llm_calls": [
+      {
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are an incident response assistant writing a short triage briefing. Use ONLY the evidence incidents listed below. You may reference an incident ID (like INC-002) ONLY if it appears in that evidence list -- never invent or cite any other incident ID, and never make one up.\nRULES:\n  1. first_actions[0] MUST recommend the top-ranked fix: 'update_webhook_secret_from_vault'.\n  2. No first_action may recommend any fix whose ledger failures exceed its successes.\n  3. Cite at least one evidence incident ID somewhere in root_cause or first_actions.\nRespond with strict JSON only: {\"root_cause\": string, \"blast_radius\": string, \"first_actions\": [string, string, string], \"last_fixed_by\": string or null}"
+          },
+          {
+            "role": "user",
+            "content": "New alert: Payment gateway callbacks all rejected and orders stuck in pending. Service: payments-api, severity: SEV2.\nSymptoms: Since about 09:00 UTC every callback from the payment gateway is rejected with a signature verification error; orders remain in 'pending' even though customers were charged.\nError: SignatureVerificationError: webhook signature mismatch\n\nEvidence (only these incidents may be cited):\nIncident INC-013 (payments-api, SEV2, 2026-07-06T12:15:38Z):\nSymptoms: Payment gateway webhook events (payment.succeeded, payment.failed) all rejected with signature verification errors since ~12:00 UTC; order status stuck in 'pending'.\nRoot cause: The upstream payment gateway rotated its webhook signing secret as part of a scheduled security rotation; payments-api was still validating against the old secret cached in config.\nResolver: Priya Nair\n\nIncident INC-004 (notification-service, SEV3, 2026-05-20T11:47:03Z):\nSymptoms: Order confirmation and shipping emails delayed 15-40 minutes; SMTP send queue backing up.\nRoot cause: Primary transactional email provider's SMTP relay intermittently timed out on connect during a regional provider outage.\nResolver: Arjun Verma\n\nIncident INC-015 (order-worker, SEV2, 2026-07-13T05:19:44Z):\nSymptoms: Third Monday-morning Redis OOM; same signature as INC-003 and INC-008.\nRoot cause: Root-caused at last: the order-retry-queue's dead-letter keys were excluded from the TTL fix added in INC-008 due to a key-prefix mismatch (retry: vs order-retry:); those keys never expired.\nResolver: Ananya Iyer\n\nIncident INC-002 (payments-api, SEV1, 2026-05-15T14:32:10Z):\nSymptoms: payments-api p99 latency above 4.8s and checkout error rate above 23% starting ~12 minutes after the v2.3.0 Friday deploy; new checkouts failing with DB connection errors.\nRoot cause: The v2.3.0 deploy's new order-confirmation retry path opens a DB session per retry without releasing it on timeout, exhausting the 20-connection Postgres pool within minutes of Friday peak traffic.\nResolver: Priya Nair\n\nIncident INC-021 (payments-api, SEV1, 2026-08-28T15:55:08Z):\nSymptoms: Same signature as INC-002/INC-009/INC-017: p99 latency above 4.9s and checkout errors above 24% about 8 minutes after the v2.5.0 Friday deploy.\nRoot cause: Fourth occurrence of the same unfixed order-confirmation session leak, triggered by the v2.5.0 Friday deploy.\nResolver: Priya Nair\n\nIncident INC-011 (auth-service, SEV3, 2026-06-29T08:41:17Z):\nSymptoms: Google OAuth login failing intermittently for ~4% of attempts with upstream 500 errors.\nRoot cause: Google's OAuth token endpoint had a transient elevated error rate (confirmed via provider status page); auth-service had no retry/circuit breaker around the call.\nResolver: Emily Chen\n\nRanked fixes (use the top one as first_actions[0]):\n  1. update_webhook_secret_from_vault (score=+0.667, worked=1, partial=0, failed=0, recent_failures=0)\nRecurrence: This is occurrence #2 of this pattern.\nTeam expert: Priya Nair (Resolved 1 incident matching this pattern with a working fix.)"
+          }
+        ],
+        "kwargs": {
+          "json_mode": true
+        },
+        "text": "{\"root_cause\":\"The payment gateway rotated its webhook signing secret; payments\u2011api continued to validate signatures against the stale secret cached in its config (see INC-013).\",\"blast_radius\":\"All inbound payment\u2011gateway callbacks are rejected, causing every order to remain in a pending state and preventing revenue capture for all customers during the outage.\",\"first_actions\":[\"update_webhook_secret_from_vault\",\"clear_webhook_secret_cache_in_payments_api\",\"verify_vault_secret_sync_and_add_monitoring_for_signature_errors\"],\"last_fixed_by\":\"Priya Nair\"}",
+        "degraded": false,
+        "model_used": "openai/gpt-oss-120b",
+        "parsed": {
+          "root_cause": "The payment gateway rotated its webhook signing secret; payments\u2011api continued to validate signatures against the stale secret cached in its config (see INC-013).",
+          "blast_radius": "All inbound payment\u2011gateway callbacks are rejected, causing every order to remain in a pending state and preventing revenue capture for all customers during the outage.",
+          "first_actions": [
+            "update_webhook_secret_from_vault",
+            "clear_webhook_secret_cache_in_payments_api",
+            "verify_vault_secret_sync_and_add_monitoring_for_signature_errors"
+          ],
+          "last_fixed_by": "Priya Nair"
+        },
+        "seconds": 9.867
+      }
+    ]
+  }
+}

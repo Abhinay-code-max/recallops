@@ -1,0 +1,295 @@
+{
+  "checked_at_utc": "2026-09-29T06:25:57.599642Z",
+  "query": "Recurring checkout errors after a Friday deploy. Checkout error rate has spiked again shortly after today's Friday deploy, with the same connection-pool-exhaustion signature payments-api has shown after previous Friday deploys. payments-api reporting critical service health, database pool exhausted",
+  "degraded": false,
+  "hits": [
+    {
+      "incident_id": "INC-021",
+      "date": "2026-08-28T15:55:08+00:00",
+      "relevance": 1.0736440394013793,
+      "metadata": {
+        "date": "2026-08-28T15:55:08Z",
+        "outcome": "worked",
+        "service": "payments-api",
+        "severity": "SEV1",
+        "incident_id": "INC-021"
+      },
+      "text": "Postgres connection pool exhaustion in payments-api service recurred for the fourth time following the v2.5.0 deployment. | When: 2026-08-28 | Unfixed order-confirmation session leak triggered by v2.5.0 deploy."
+    },
+    {
+      "incident_id": "INC-023",
+      "date": "2026-09-11T15:02:00+00:00",
+      "relevance": 1.0506925271881407,
+      "metadata": {
+        "date": "2026-09-11T15:02:00Z",
+        "outcome": "open",
+        "service": "payments-api",
+        "severity": "SEV1",
+        "incident_id": "INC-023"
+      },
+      "text": "Checkout errors spiking in payments-api due to postgres_pool_exhaustion following v2.6.0 deployment. | When: 2026-09-11T15:02:00Z | Database connection slots exhausted after deployment."
+    },
+    {
+      "incident_id": "INC-017",
+      "date": "2026-07-24T14:38:51+00:00",
+      "relevance": 1.0499449401203174,
+      "metadata": {
+        "date": "2026-07-24T14:48:51Z",
+        "outcome": "worked",
+        "service": "payments-api",
+        "severity": "SEV1",
+        "incident_id": "INC-017"
+      },
+      "text": "Postgres connection pool exhaustion occurred in payments-api following the v2.4.0 deployment. | When: 2026-07-24 | Unresolved order-confirmation session leak."
+    },
+    {
+      "incident_id": "INC-009",
+      "date": "2026-06-19T15:10:47+00:00",
+      "relevance": 1.038440204412973,
+      "metadata": {
+        "date": "2026-06-19T15:10:47Z",
+        "outcome": "worked",
+        "service": "payments-api",
+        "severity": "SEV1",
+        "incident_id": "INC-009"
+      },
+      "text": "Postgres connection pool exhaustion in payments-api service caused by order-confirmation retry session leak. | When: 2026-06-19 | Triggered by v2.3.1 deploy traffic."
+    },
+    {
+      "incident_id": "INC-002",
+      "date": "2026-05-15T00:00:00+00:00",
+      "relevance": 1.0107558448143763,
+      "metadata": {
+        "date": "2026-05-15T14:32:10Z",
+        "outcome": "worked",
+        "service": "payments-api",
+        "severity": "SEV1",
+        "incident_id": "INC-002"
+      },
+      "text": "Postgres connection pool exhaustion occurred in payments-api service following v2.3.0 deployment. | When: 2026-05-15 | Root cause identified as unreleased database sessions on retry timeout in order-confirmation logic."
+    },
+    {
+      "incident_id": "INC-024",
+      "date": "2026-09-25T00:00:00+00:00",
+      "relevance": 1.0097723707536375,
+      "metadata": {
+        "date": "2026-09-29T06:25:51.686274+00:00",
+        "outcome": "worked",
+        "service": "payments-api",
+        "severity": "SEV1",
+        "incident_id": "INC-024"
+      },
+      "text": "Incident INC-024 occurred in the payments-api service, causing rapid database connection pool exhaustion during checkout traffic. | When: 2026-09-25 | A configuration change in the Friday deployment set the database connection pool max size too low."
+    },
+    {
+      "incident_id": "INC-016",
+      "date": "2026-07-21T15:03:26+00:00",
+      "relevance": 0.02603244317655225,
+      "metadata": {
+        "date": "2026-07-21T17:03:26Z",
+        "outcome": "worked",
+        "service": "order-worker",
+        "severity": "SEV1",
+        "incident_id": "INC-016"
+      },
+      "text": "order-worker pods experienced repeated OOMKilled errors every 20-30 minutes, causing a 60% drop in job processing throughput. | When: 2026-07-21"
+    },
+    {
+      "incident_id": "INC-008",
+      "date": "2026-06-15T06:58:12.010000+00:00",
+      "relevance": 0.010076497351372646,
+      "metadata": {
+        "date": "2026-06-15T06:58:12Z",
+        "outcome": "worked",
+        "service": "order-worker",
+        "severity": "SEV2",
+        "incident_id": "INC-008"
+      },
+      "text": "Ananya Iyer resolved INC-008 in 25 minutes by manually flushing stale keys and adding a 24-hour TTL to job-result keys. | When: 2026-06-15 | Involving: Ananya Iyer"
+    },
+    {
+      "incident_id": "INC-012",
+      "date": "2026-07-01T03:27:54.010000+00:00",
+      "relevance": 0.009367436626897003,
+      "metadata": {
+        "date": "2026-07-01T03:27:54Z",
+        "outcome": "worked",
+        "service": "auth-service",
+        "severity": "SEV1",
+        "incident_id": "INC-012"
+      },
+      "text": "Emily Chen resolved the auth-service incident by rotating the DNS-01 API token and manually renewing the certificate via cert-manager. | When: 2026-07-01 | Involving: Emily Chen"
+    },
+    {
+      "incident_id": "INC-015",
+      "date": "2026-07-13T05:19:44.010000+00:00",
+      "relevance": 0.008231267472943055,
+      "metadata": {
+        "date": "2026-07-13T05:19:44Z",
+        "outcome": "worked",
+        "service": "order-worker",
+        "severity": "SEV2",
+        "incident_id": "INC-015"
+      },
+      "text": "Ananya Iyer resolved the incident by correcting the TTL job's key-prefix filter and backfilling TTLs on 2.1 million existing keys. | When: 2026-07-13 | Involving: Ananya Iyer"
+    },
+    {
+      "incident_id": "INC-004",
+      "date": "2026-05-20T11:47:03.020000+00:00",
+      "relevance": 0.006146543323310024,
+      "metadata": {
+        "date": "2026-05-20T11:47:03Z",
+        "outcome": "worked",
+        "service": "notification-service",
+        "severity": "SEV3",
+        "incident_id": "INC-004"
+      },
+      "text": "The team plans to implement automatic health-check-based failover between SMTP providers to replace manual configuration changes. | To prevent future manual intervention requirements during SMTP provider outages."
+    },
+    {
+      "incident_id": "INC-013",
+      "date": "2026-07-06T12:00:00+00:00",
+      "relevance": 0.004913401499503618,
+      "metadata": {
+        "date": "2026-07-06T12:15:38Z",
+        "outcome": "worked",
+        "service": "payments-api",
+        "severity": "SEV2",
+        "incident_id": "INC-013"
+      },
+      "text": "Payment gateway webhook events were rejected due to a signature mismatch after the gateway rotated its signing secret. | When: 2026-07-06 | The payments-api service was validating against an outdated cached secret."
+    },
+    {
+      "incident_id": "INC-007",
+      "date": "2026-06-09T13:44:29.010000+00:00",
+      "relevance": 0.0029783958406090073,
+      "metadata": {
+        "date": "2026-06-09T13:44:29Z",
+        "outcome": "worked",
+        "service": "search-api",
+        "severity": "SEV3",
+        "incident_id": "INC-007"
+      },
+      "text": "Sofia Martinez resolved the shard allocation issue by manually rerouting unassigned shards with retry_failed=true. | When: 2026-06-09 | Involving: Sofia Martinez"
+    },
+    {
+      "incident_id": "INC-011",
+      "date": "2026-06-29T08:41:17.010000+00:00",
+      "relevance": 0.0026258823445570447,
+      "metadata": {
+        "date": "2026-06-29T08:41:17Z",
+        "outcome": "worked",
+        "service": "auth-service",
+        "severity": "SEV3",
+        "incident_id": "INC-011"
+      },
+      "text": "Emily Chen resolved the incident by implementing exponential backoff retries (3 attempts) and a circuit breaker for the token exchange call. | When: 2026-06-29 | Involving: Emily Chen"
+    },
+    {
+      "incident_id": "INC-018",
+      "date": "2026-07-28T11:36:15.010000+00:00",
+      "relevance": 0.002101716233081749,
+      "metadata": {
+        "date": "2026-07-28T11:36:15Z",
+        "outcome": "worked",
+        "service": "search-api",
+        "severity": "SEV3",
+        "incident_id": "INC-018"
+      },
+      "text": "Sofia Martinez resolved the disk watermark issue by implementing a 60-day ILM retention policy and deleting older indices. | When: 2026-07-28 | Involving: Sofia Martinez"
+    },
+    {
+      "incident_id": "INC-001",
+      "date": "2026-05-12T09:14:22.010000+00:00",
+      "relevance": 0.0020904669221521047,
+      "metadata": {
+        "date": "2026-05-12T09:14:22Z",
+        "outcome": "worked",
+        "service": "search-api",
+        "severity": "SEV3",
+        "incident_id": "INC-001"
+      },
+      "text": "Sofia Martinez resolved the search-api latency issue by reindexing catalog-v2 with the category_id keyword sub-field restored. | When: 2026-05-12 | Involving: Sofia Martinez | Fix for INC-001."
+    },
+    {
+      "incident_id": "INC-005",
+      "date": "2026-05-27T16:20:55.010000+00:00",
+      "relevance": 0.0012256014783091492,
+      "metadata": {
+        "date": "2026-05-27T16:20:55Z",
+        "outcome": "worked",
+        "service": "auth-service",
+        "severity": "SEV2",
+        "incident_id": "INC-005"
+      },
+      "text": "Emily Chen resolved incident INC-005 by forcing a chrony resync and rolling the affected pod. | When: 2026-05-27 | Involving: Emily Chen"
+    },
+    {
+      "incident_id": "INC-014",
+      "date": "2026-07-08T10:52:09+00:00",
+      "relevance": 0.0009459318394730563,
+      "metadata": {
+        "date": "2026-07-08T10:52:09Z",
+        "outcome": "worked",
+        "service": "search-api",
+        "severity": "SEV2",
+        "incident_id": "INC-014"
+      },
+      "text": "The search-api experienced a SEV2 incident (INC-014) characterized by a p99 latency jump to 31.2s and a 41% error rate. | When: 2026-07-08 | The enable_fuzzy_search_v2 feature flag reached 100% rollout, triggering expensive Levenshtein-distance matching that exceeded the 30s query timeout."
+    },
+    {
+      "incident_id": "INC-010",
+      "date": "2026-06-23T09:14:05.010000+00:00",
+      "relevance": 0.0009276017189600068,
+      "metadata": {
+        "date": "2026-06-23T09:33:05Z",
+        "outcome": "worked",
+        "service": "notification-service",
+        "severity": "SEV2",
+        "incident_id": "INC-010"
+      },
+      "text": "Arjun Verma resolved the notification-service issue by rotating the FCM service-account key from the vault. | When: 2026-06-23 | Involving: Arjun Verma"
+    },
+    {
+      "incident_id": "INC-003",
+      "date": "2026-05-18T07:05:41.010000+00:00",
+      "relevance": 0.0006480285074726207,
+      "metadata": {
+        "date": "2026-05-18T07:05:41Z",
+        "outcome": "worked",
+        "service": "order-worker",
+        "severity": "SEV2",
+        "incident_id": "INC-003"
+      },
+      "text": "Ananya Iyer resolved the Redis OOM incident in 25 minutes by restarting Redis and changing the maxmemory-policy to allkeys-lru. | When: 2026-05-18 | Involving: Ananya Iyer"
+    },
+    {
+      "incident_id": "INC-019",
+      "date": "2026-08-11T04:22:37.010000+00:00",
+      "relevance": 0.0005908774691775992,
+      "metadata": {
+        "date": "2026-08-11T04:22:37Z",
+        "outcome": "worked",
+        "service": "auth-service",
+        "severity": "SEV1",
+        "incident_id": "INC-019"
+      },
+      "text": "Ananya Iyer resolved the incident in 28 minutes by capping new sessions at 30 days and bulk-deleting sessions older than 90 days. | When: 2026-08-11 | Involving: Ananya Iyer | To reclaim memory and prevent future OOM errors."
+    },
+    {
+      "incident_id": "INC-006",
+      "date": "2026-06-03T10:20:18.020000+00:00",
+      "relevance": 0.00047270239133887155,
+      "metadata": {
+        "date": "2026-06-03T10:02:18Z",
+        "outcome": "worked",
+        "service": "order-worker",
+        "severity": "SEV1",
+        "incident_id": "INC-006"
+      },
+      "text": "Rahul Mehta resolved the incident by scaling the order-processing consumer replicas from 3 to 8. | When: 2026-06-03 | Involving: Rahul Mehta"
+    }
+  ],
+  "target_incident_id": "INC-024",
+  "target_found": true
+}

@@ -1,0 +1,15 @@
+{
+  "head_sha": "05eb0cb325925f03e7395a9d353f7e1d2ea4f732",
+  "head_sha_at_collect": "05eb0cb325925f03e7395a9d353f7e1d2ea4f732",
+  "model_primary": "openai/gpt-oss-120b",
+  "model_fallback": "qwen/qwen3.8-27b",
+  "frozen_at": "2026-09-29T06:29:37.354208+00:00",
+  "collect_started": "2026-09-29T06:29:59.651667+00:00",
+  "n_cases": 15,
+  "temperature": 0.2,
+  "hindsight_ping": {
+    "status": "ok",
+    "seconds": 0.59
+  },
+  "collect_finished": "2026-09-29T06:33:38.471382+00:00"
+}

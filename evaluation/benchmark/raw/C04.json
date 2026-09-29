@@ -1,0 +1,201 @@
+{
+  "case_id": "C04",
+  "alert": {
+    "title": "order-worker falling behind during Diwali Dhamaka Sale",
+    "service": "order-worker",
+    "severity": "SEV1",
+    "submitted_at": "2026-09-16T11:31:40Z",
+    "symptoms": "Orders are taking much longer than usual to move from 'placed' to 'confirmed' since the Diwali Dhamaka Sale kicked off a few minutes ago; the order pipeline looks like it's falling behind the incoming volume.",
+    "error_message": "order-processing consumer group falling behind on the order-events topic",
+    "log_snippet": "2026-09-16T11:31:40Z PAGE order-worker service_health=DEGRADED reason=consumer_backlog\nkafka: consumer group order-processing falling behind on topic order-events (partition 5)\nbacklog_messages=19870 processing_rate_msgs_sec=540 required_rate_msgs_sec=1500"
+  },
+  "A": {
+    "ok": true,
+    "degraded": false,
+    "model_used": "openai/gpt-oss-120b",
+    "latency_s": 6.186,
+    "response": {
+      "root_cause": "Consumer group lag caused by sudden traffic spike exceeding current order-worker processing capacity",
+      "blast_radius": "All orders placed during the Diwali Dhamaka Sale experience delayed confirmation, impacting customer experience and downstream fulfillment",
+      "first_actions": [
+        "Check consumer lag and throughput metrics for the order-events topic",
+        "Inspect order-worker pod/instance resource usage and scaling configuration",
+        "Review recent logs for errors or backpressure and consider scaling out the consumer group"
+      ],
+      "last_fixed_by": null
+    },
+    "raw_text": "{\"root_cause\":\"Consumer group lag caused by sudden traffic spike exceeding current order-worker processing capacity\",\"blast_radius\":\"All orders placed during the Diwali Dhamaka Sale experience delayed confirmation, impacting customer experience and downstream fulfillment\",\"first_actions\":[\"Check consumer lag and throughput metrics for the order-events topic\",\"Inspect order-worker pod/instance resource usage and scaling configuration\",\"Review recent logs for errors or backpressure and consider scaling out the consumer group\"],\"last_fixed_by\":null}",
+    "llm_calls": [
+      {
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are an incident response assistant writing a short triage briefing for a new alert. You only have the alert below.\nRespond with strict JSON only: {\"root_cause\": string, \"blast_radius\": string, \"first_actions\": [string, string, string], \"last_fixed_by\": string or null}"
+          },
+          {
+            "role": "user",
+            "content": "New alert: order-worker falling behind during Diwali Dhamaka Sale. Service: order-worker, severity: SEV1.\nSymptoms: Orders are taking much longer than usual to move from 'placed' to 'confirmed' since the Diwali Dhamaka Sale kicked off a few minutes ago; the order pipeline looks like it's falling behind the incoming volume.\nError: order-processing consumer group falling behind on the order-events topic"
+          }
+        ],
+        "kwargs": {
+          "json_mode": true
+        },
+        "text": "{\"root_cause\":\"Consumer group lag caused by sudden traffic spike exceeding current order-worker processing capacity\",\"blast_radius\":\"All orders placed during the Diwali Dhamaka Sale experience delayed confirmation, impacting customer experience and downstream fulfillment\",\"first_actions\":[\"Check consumer lag and throughput metrics for the order-events topic\",\"Inspect order-worker pod/instance resource usage and scaling configuration\",\"Review recent logs for errors or backpressure and consider scaling out the consumer group\"],\"last_fixed_by\":null}",
+        "degraded": false,
+        "model_used": "openai/gpt-oss-120b",
+        "parsed": {
+          "root_cause": "Consumer group lag caused by sudden traffic spike exceeding current order-worker processing capacity",
+          "blast_radius": "All orders placed during the Diwali Dhamaka Sale experience delayed confirmation, impacting customer experience and downstream fulfillment",
+          "first_actions": [
+            "Check consumer lag and throughput metrics for the order-events topic",
+            "Inspect order-worker pod/instance resource usage and scaling configuration",
+            "Review recent logs for errors or backpressure and consider scaling out the consumer group"
+          ],
+          "last_fixed_by": null
+        },
+        "seconds": 6.186
+      }
+    ]
+  },
+  "B": {
+    "ok": true,
+    "degraded": false,
+    "degraded_reason": null,
+    "path": "generate_sections",
+    "template_fallback": false,
+    "latency_s": 7.286,
+    "analysis_latency_s": 1.66,
+    "models_used": [
+      "openai/gpt-oss-120b"
+    ],
+    "response": {
+      "root_cause": "The Diwali Dhamaka Sale surge increased order-events production ~4x baseline, overwhelming the order-processing consumer group (3 replicas) and causing lag, as seen in INC-006.",
+      "blast_radius": "Orders remain in 'placed' state for minutes, delaying confirmations and potentially impacting revenue and customer experience across the entire order pipeline.",
+      "first_actions": [
+        "scale_consumer_replicas",
+        "increase_consumer_poll_interval",
+        "review_and_adjust_autoscaler_thresholds"
+      ],
+      "last_fixed_by": "Rahul Mehta"
+    },
+    "cited_incident_ids": [
+      "INC-006",
+      "INC-020"
+    ],
+    "structured": {
+      "memory_state": "matched",
+      "evidence": [
+        {
+          "incident_id": "INC-006",
+          "date": "2026-06-03T10:02:18Z",
+          "relative": "3 months ago",
+          "service": "order-worker",
+          "severity": "SEV1",
+          "excerpt": "During the Summer Splash Sale flash promotion, order-events consumer lag climbed past 48k messages; order confirmations delayed up to 20 minutes.",
+          "relevance": 0.5735,
+          "source_bank": "incidents"
+        },
+        {
+          "incident_id": "INC-020",
+          "date": "2026-08-15T21:07:52Z",
+          "relative": "4 weeks ago",
+          "service": "order-worker",
+          "severity": "SEV1",
+          "excerpt": "During the Independence Day Mega Sale, order-events consumer lag began climbing again within minutes of the flash sale start.",
+          "relevance": 0.2081,
+          "source_bank": "incidents"
+        }
+      ],
+      "ranked_fixes": [
+        {
+          "rank": 1,
+          "fix_type": "scale_consumer_replicas",
+          "label": "Scale consumer replicas",
+          "score": 0.4302,
+          "similarity": 0.5735,
+          "worked": 2,
+          "partial": 0,
+          "failed": 0,
+          "attempts": 2,
+          "recent_failures": 0,
+          "last_used_incident_id": "INC-020"
+        },
+        {
+          "rank": 2,
+          "fix_type": "increase_topic_partition_count_live",
+          "label": "Increase topic partition count live",
+          "score": -0.1088,
+          "similarity": 0.5735,
+          "worked": 0,
+          "partial": 0,
+          "failed": 1,
+          "attempts": 1,
+          "recent_failures": 1,
+          "last_used_incident_id": "INC-006"
+        }
+      ],
+      "warnings": [
+        {
+          "kind": "failed_fix",
+          "message": "Increase topic partition count live failed 1 of 1 time(s) for this pattern -- try another fix first.",
+          "incident_ids": [
+            "INC-006"
+          ]
+        },
+        {
+          "kind": "recurrence",
+          "message": "This is occurrence #3 of this pattern, recurring roughly every 73.5 days.",
+          "incident_ids": [
+            "INC-006",
+            "INC-020"
+          ]
+        }
+      ],
+      "team_hint": {
+        "person": "Rahul Mehta",
+        "reason": "Resolved 2 incidents matching this pattern with a working fix.",
+        "incident_ids": [
+          "INC-006",
+          "INC-020"
+        ]
+      },
+      "recurrence": {
+        "occurrence_number": 3,
+        "interval_days_avg": 73.5,
+        "open_permanent_fix_incident_id": null,
+        "message": "This is occurrence #3 of this pattern, recurring roughly every 73.5 days."
+      }
+    },
+    "llm_calls": [
+      {
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are an incident response assistant writing a short triage briefing. Use ONLY the evidence incidents listed below. You may reference an incident ID (like INC-002) ONLY if it appears in that evidence list -- never invent or cite any other incident ID, and never make one up.\nRULES:\n  1. first_actions[0] MUST recommend the top-ranked fix: 'scale_consumer_replicas'.\n  2. No first_action may recommend any fix whose ledger failures exceed its successes.\n  3. Cite at least one evidence incident ID somewhere in root_cause or first_actions.\nRespond with strict JSON only: {\"root_cause\": string, \"blast_radius\": string, \"first_actions\": [string, string, string], \"last_fixed_by\": string or null}"
+          },
+          {
+            "role": "user",
+            "content": "New alert: order-worker falling behind during Diwali Dhamaka Sale. Service: order-worker, severity: SEV1.\nSymptoms: Orders are taking much longer than usual to move from 'placed' to 'confirmed' since the Diwali Dhamaka Sale kicked off a few minutes ago; the order pipeline looks like it's falling behind the incoming volume.\nError: order-processing consumer group falling behind on the order-events topic\n\nEvidence (only these incidents may be cited):\nIncident INC-006 (order-worker, SEV1, 2026-06-03T10:02:18Z):\nSymptoms: During the Summer Splash Sale flash promotion, order-events consumer lag climbed past 48k messages; order confirmations delayed up to 20 minutes.\nRoot cause: Sale traffic pushed the produce rate to ~4x baseline; the order-processing consumer group (3 replicas) could not keep pace with partition throughput.\nResolver: Rahul Mehta\n\nIncident INC-020 (order-worker, SEV1, 2026-08-15T21:07:52Z):\nSymptoms: During the Independence Day Mega Sale, order-events consumer lag began climbing again within minutes of the flash sale start.\nRoot cause: Sale traffic again exceeded consumer throughput capacity, same as INC-006, but this time the team pre-scaled ahead of the event per the INC-006 postmortem action item -- lag still spiked briefly due to a delayed autoscaler trigger.\nResolver: Rahul Mehta\n\nRanked fixes (use the top one as first_actions[0]):\n  1. scale_consumer_replicas (score=+0.430, worked=2, partial=0, failed=0, recent_failures=0)\n  2. increase_topic_partition_count_live (score=-0.109, worked=0, partial=0, failed=1, recent_failures=1)\nRISKY fixes -- ledger failures exceed successes (do NOT recommend these in any first_action, not even as a last resort): increase_topic_partition_count_live\nRecurrence: This is occurrence #3 of this pattern, recurring roughly every 73.5 days.\nTeam expert: Rahul Mehta (Resolved 2 incidents matching this pattern with a working fix.)"
+          }
+        ],
+        "kwargs": {
+          "json_mode": true
+        },
+        "text": "{\"root_cause\":\"The Diwali Dhamaka Sale surge increased order-events production ~4x baseline, overwhelming the order-processing consumer group (3 replicas) and causing lag, as seen in INC-006.\",\"blast_radius\":\"Orders remain in 'placed' state for minutes, delaying confirmations and potentially impacting revenue and customer experience across the entire order pipeline.\",\"first_actions\":[\"scale_consumer_replicas\",\"increase_consumer_poll_interval\",\"review_and_adjust_autoscaler_thresholds\"],\"last_fixed_by\":\"Rahul Mehta\"}",
+        "degraded": false,
+        "model_used": "openai/gpt-oss-120b",
+        "parsed": {
+          "root_cause": "The Diwali Dhamaka Sale surge increased order-events production ~4x baseline, overwhelming the order-processing consumer group (3 replicas) and causing lag, as seen in INC-006.",
+          "blast_radius": "Orders remain in 'placed' state for minutes, delaying confirmations and potentially impacting revenue and customer experience across the entire order pipeline.",
+          "first_actions": [
+            "scale_consumer_replicas",
+            "increase_consumer_poll_interval",
+            "review_and_adjust_autoscaler_thresholds"
+          ],
+          "last_fixed_by": "Rahul Mehta"
+        },
+        "seconds": 5.626
+      }
+    ]
+  }
+}

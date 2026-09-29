@@ -1,0 +1,233 @@
+{
+  "case_id": "C07",
+  "alert": {
+    "title": "Background jobs stalling because Redis keeps refusing writes",
+    "service": "order-worker",
+    "severity": "SEV2",
+    "submitted_at": "2026-09-28T06:41:00Z",
+    "symptoms": "Order-worker jobs are piling up (backlog over 39k) and Redis is rejecting new writes; memory sits near its limit even though the eviction policy was tuned in the past. Delayed order emails are being reported by support.",
+    "error_message": "OOM command not allowed when used memory > 'maxmemory'",
+    "log_snippet": "2026-09-28T06:41:00Z ERROR order-worker [redis-client] OOM command not allowed when used memory > 'maxmemory'.\nredis_used_memory_pct=99.0% queue_depth=39210 maxmemory_policy=allkeys-lru"
+  },
+  "A": {
+    "ok": true,
+    "degraded": false,
+    "model_used": "openai/gpt-oss-120b",
+    "latency_s": 4.085,
+    "response": {
+      "root_cause": "Redis hit its maxmemory limit causing OOM errors and write rejections, likely due to memory\u2011intensive keys or insufficient maxmemory setting",
+      "blast_radius": "Order\u2011worker backlog (39k+ jobs), delayed order confirmation emails, potential order fulfillment delays affecting customers and downstream services",
+      "first_actions": [
+        "Inspect Redis memory usage and identify large/expiring keys; consider manual eviction or increasing maxmemory",
+        "Temporarily throttle or pause order\u2011worker job intake to prevent further backlog while Redis is stabilized",
+        "Restart Redis with adjusted maxmemory/eviction settings or scale Redis instance, then monitor write health"
+      ],
+      "last_fixed_by": null
+    },
+    "raw_text": "{\"root_cause\":\"Redis hit its maxmemory limit causing OOM errors and write rejections, likely due to memory\u2011intensive keys or insufficient maxmemory setting\",\"blast_radius\":\"Order\u2011worker backlog (39k+ jobs), delayed order confirmation emails, potential order fulfillment delays affecting customers and downstream services\",\"first_actions\":[\"Inspect Redis memory usage and identify large/expiring keys; consider manual eviction or increasing maxmemory\",\"Temporarily throttle or pause order\u2011worker job intake to prevent further backlog while Redis is stabilized\",\"Restart Redis with adjusted maxmemory/eviction settings or scale Redis instance, then monitor write health\"],\"last_fixed_by\":null}",
+    "llm_calls": [
+      {
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are an incident response assistant writing a short triage briefing for a new alert. You only have the alert below.\nRespond with strict JSON only: {\"root_cause\": string, \"blast_radius\": string, \"first_actions\": [string, string, string], \"last_fixed_by\": string or null}"
+          },
+          {
+            "role": "user",
+            "content": "New alert: Background jobs stalling because Redis keeps refusing writes. Service: order-worker, severity: SEV2.\nSymptoms: Order-worker jobs are piling up (backlog over 39k) and Redis is rejecting new writes; memory sits near its limit even though the eviction policy was tuned in the past. Delayed order emails are being reported by support.\nError: OOM command not allowed when used memory > 'maxmemory'"
+          }
+        ],
+        "kwargs": {
+          "json_mode": true
+        },
+        "text": "{\"root_cause\":\"Redis hit its maxmemory limit causing OOM errors and write rejections, likely due to memory\u2011intensive keys or insufficient maxmemory setting\",\"blast_radius\":\"Order\u2011worker backlog (39k+ jobs), delayed order confirmation emails, potential order fulfillment delays affecting customers and downstream services\",\"first_actions\":[\"Inspect Redis memory usage and identify large/expiring keys; consider manual eviction or increasing maxmemory\",\"Temporarily throttle or pause order\u2011worker job intake to prevent further backlog while Redis is stabilized\",\"Restart Redis with adjusted maxmemory/eviction settings or scale Redis instance, then monitor write health\"],\"last_fixed_by\":null}",
+        "degraded": false,
+        "model_used": "openai/gpt-oss-120b",
+        "parsed": {
+          "root_cause": "Redis hit its maxmemory limit causing OOM errors and write rejections, likely due to memory\u2011intensive keys or insufficient maxmemory setting",
+          "blast_radius": "Order\u2011worker backlog (39k+ jobs), delayed order confirmation emails, potential order fulfillment delays affecting customers and downstream services",
+          "first_actions": [
+            "Inspect Redis memory usage and identify large/expiring keys; consider manual eviction or increasing maxmemory",
+            "Temporarily throttle or pause order\u2011worker job intake to prevent further backlog while Redis is stabilized",
+            "Restart Redis with adjusted maxmemory/eviction settings or scale Redis instance, then monitor write health"
+          ],
+          "last_fixed_by": null
+        },
+        "seconds": 4.084
+      }
+    ]
+  },
+  "B": {
+    "ok": true,
+    "degraded": false,
+    "degraded_reason": null,
+    "path": "generate_sections",
+    "template_fallback": false,
+    "latency_s": 18.674,
+    "analysis_latency_s": 0.816,
+    "models_used": [
+      "openai/gpt-oss-120b"
+    ],
+    "response": {
+      "root_cause": "Redis OOM is caused by accumulated idempotency and job\u2011result keys without TTL, combined with a default noeviction policy that was never updated after the weekend load spike (see INC-003).",
+      "blast_radius": "Order\u2011worker backlog exceeds 39k jobs, order confirmation emails are delayed, and the service cannot accept new orders, impacting revenue and customer experience.",
+      "first_actions": [
+        "restart_redis_and_set_eviction_policy",
+        "manual_flush_stale_keys",
+        "add_ttl_to_job_result_keys"
+      ],
+      "last_fixed_by": "Ananya Iyer"
+    },
+    "cited_incident_ids": [
+      "INC-003",
+      "INC-008",
+      "INC-019"
+    ],
+    "structured": {
+      "memory_state": "matched",
+      "evidence": [
+        {
+          "incident_id": "INC-003",
+          "date": "2026-05-18T07:05:41Z",
+          "relative": "4 months ago",
+          "service": "order-worker",
+          "severity": "SEV2",
+          "excerpt": "order-worker job processing stalled Monday morning; Redis returning OOM errors, queue depth past 41k, order confirmation emails delayed.",
+          "relevance": 1.0,
+          "source_bank": "incidents"
+        },
+        {
+          "incident_id": "INC-019",
+          "date": "2026-08-11T04:22:37Z",
+          "relative": "6 weeks ago",
+          "service": "auth-service",
+          "severity": "SEV1",
+          "excerpt": "Users logged out en masse; auth-service session lookups failing with Redis OOM errors starting 04:22 UTC (not a Monday).",
+          "relevance": 0.7201,
+          "source_bank": "incidents"
+        },
+        {
+          "incident_id": "INC-008",
+          "date": "2026-06-15T06:58:12Z",
+          "relative": "3 months ago",
+          "service": "order-worker",
+          "severity": "SEV2",
+          "excerpt": "Second Monday-morning Redis OOM in a month; order-worker queue depth past 38k again, same signature as INC-003.",
+          "relevance": 0.6675,
+          "source_bank": "incidents"
+        }
+      ],
+      "ranked_fixes": [
+        {
+          "rank": 1,
+          "fix_type": "restart_redis_and_set_eviction_policy",
+          "label": "Restart redis and set eviction policy",
+          "score": 0.6667,
+          "similarity": 1.0,
+          "worked": 1,
+          "partial": 0,
+          "failed": 0,
+          "attempts": 1,
+          "recent_failures": 0,
+          "last_used_incident_id": "INC-003"
+        },
+        {
+          "rank": 2,
+          "fix_type": "manual_flush_stale_keys",
+          "label": "Manual flush stale keys",
+          "score": 0.5,
+          "similarity": 1.0,
+          "worked": 0,
+          "partial": 2,
+          "failed": 0,
+          "attempts": 2,
+          "recent_failures": 0,
+          "last_used_incident_id": "INC-008"
+        },
+        {
+          "rank": 3,
+          "fix_type": "add_ttl_to_job_result_keys",
+          "label": "Add ttl to job result keys",
+          "score": 0.445,
+          "similarity": 0.6675,
+          "worked": 1,
+          "partial": 0,
+          "failed": 0,
+          "attempts": 1,
+          "recent_failures": 0,
+          "last_used_incident_id": "INC-008"
+        },
+        {
+          "rank": 4,
+          "fix_type": "fix_ttl_key_prefix_mismatch",
+          "label": "Fix ttl key prefix mismatch",
+          "score": 0.0,
+          "similarity": 0.0,
+          "worked": 1,
+          "partial": 0,
+          "failed": 0,
+          "attempts": 1,
+          "recent_failures": 0,
+          "last_used_incident_id": "INC-015"
+        }
+      ],
+      "warnings": [
+        {
+          "kind": "recurrence",
+          "message": "This is occurrence #4 of this pattern, recurring roughly every 28 days.",
+          "incident_ids": [
+            "INC-003",
+            "INC-008",
+            "INC-015"
+          ]
+        }
+      ],
+      "team_hint": {
+        "person": "Ananya Iyer",
+        "reason": "Resolved 3 incidents matching this pattern with a working fix.",
+        "incident_ids": [
+          "INC-003",
+          "INC-008",
+          "INC-015"
+        ]
+      },
+      "recurrence": {
+        "occurrence_number": 4,
+        "interval_days_avg": 28.0,
+        "open_permanent_fix_incident_id": null,
+        "message": "This is occurrence #4 of this pattern, recurring roughly every 28 days."
+      }
+    },
+    "llm_calls": [
+      {
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are an incident response assistant writing a short triage briefing. Use ONLY the evidence incidents listed below. You may reference an incident ID (like INC-002) ONLY if it appears in that evidence list -- never invent or cite any other incident ID, and never make one up.\nRULES:\n  1. first_actions[0] MUST recommend the top-ranked fix: 'restart_redis_and_set_eviction_policy'.\n  2. No first_action may recommend any fix whose ledger failures exceed its successes.\n  3. Cite at least one evidence incident ID somewhere in root_cause or first_actions.\nRespond with strict JSON only: {\"root_cause\": string, \"blast_radius\": string, \"first_actions\": [string, string, string], \"last_fixed_by\": string or null}"
+          },
+          {
+            "role": "user",
+            "content": "New alert: Background jobs stalling because Redis keeps refusing writes. Service: order-worker, severity: SEV2.\nSymptoms: Order-worker jobs are piling up (backlog over 39k) and Redis is rejecting new writes; memory sits near its limit even though the eviction policy was tuned in the past. Delayed order emails are being reported by support.\nError: OOM command not allowed when used memory > 'maxmemory'\n\nEvidence (only these incidents may be cited):\nIncident INC-003 (order-worker, SEV2, 2026-05-18T07:05:41Z):\nSymptoms: order-worker job processing stalled Monday morning; Redis returning OOM errors, queue depth past 41k, order confirmation emails delayed.\nRoot cause: Weekend order volume queued jobs and cached idempotency keys in Redis without eviction; by Monday's traffic ramp Redis hit its 2GB maxmemory limit with the default noeviction policy.\nResolver: Ananya Iyer\n\nIncident INC-019 (auth-service, SEV1, 2026-08-11T04:22:37Z):\nSymptoms: Users logged out en masse; auth-service session lookups failing with Redis OOM errors starting 04:22 UTC (not a Monday).\nRoot cause: 'Remember me' sessions were issued with no TTL cap (some over a year old); accumulated session keys filled the auth-service session Redis instance to its 1GB maxmemory limit.\nResolver: Ananya Iyer\n\nIncident INC-008 (order-worker, SEV2, 2026-06-15T06:58:12Z):\nSymptoms: Second Monday-morning Redis OOM in a month; order-worker queue depth past 38k again, same signature as INC-003.\nRoot cause: The allkeys-lru eviction policy set after INC-003 slowed the OOM but idempotency keys from the order-retry-queue still have no TTL, so memory pressure builds back up over the weekend.\nResolver: Ananya Iyer\n\nRanked fixes (use the top one as first_actions[0]):\n  1. restart_redis_and_set_eviction_policy (score=+0.667, worked=1, partial=0, failed=0, recent_failures=0)\n  2. manual_flush_stale_keys (score=+0.500, worked=0, partial=2, failed=0, recent_failures=0)\n  3. add_ttl_to_job_result_keys (score=+0.445, worked=1, partial=0, failed=0, recent_failures=0)\n  4. fix_ttl_key_prefix_mismatch (score=+0.000, worked=1, partial=0, failed=0, recent_failures=0)\nRecurrence: This is occurrence #4 of this pattern, recurring roughly every 28 days.\nTeam expert: Ananya Iyer (Resolved 3 incidents matching this pattern with a working fix.)"
+          }
+        ],
+        "kwargs": {
+          "json_mode": true
+        },
+        "text": "{\"root_cause\":\"Redis OOM is caused by accumulated idempotency and job\u2011result keys without TTL, combined with a default noeviction policy that was never updated after the weekend load spike (see INC-003).\",\"blast_radius\":\"Order\u2011worker backlog exceeds 39k jobs, order confirmation emails are delayed, and the service cannot accept new orders, impacting revenue and customer experience.\",\"first_actions\":[\"restart_redis_and_set_eviction_policy\",\"manual_flush_stale_keys\",\"add_ttl_to_job_result_keys\"],\"last_fixed_by\":\"Ananya Iyer\"}",
+        "degraded": false,
+        "model_used": "openai/gpt-oss-120b",
+        "parsed": {
+          "root_cause": "Redis OOM is caused by accumulated idempotency and job\u2011result keys without TTL, combined with a default noeviction policy that was never updated after the weekend load spike (see INC-003).",
+          "blast_radius": "Order\u2011worker backlog exceeds 39k jobs, order confirmation emails are delayed, and the service cannot accept new orders, impacting revenue and customer experience.",
+          "first_actions": [
+            "restart_redis_and_set_eviction_policy",
+            "manual_flush_stale_keys",
+            "add_ttl_to_job_result_keys"
+          ],
+          "last_fixed_by": "Ananya Iyer"
+        },
+        "seconds": 17.858
+      }
+    ]
+  }
+}

@@ -1,0 +1,168 @@
+{
+  "case_id": "C11",
+  "alert": {
+    "title": "Worker pods restarting in a loop after a dependency bump",
+    "service": "order-worker",
+    "severity": "SEV1",
+    "submitted_at": "2026-09-27T18:30:00Z",
+    "symptoms": "Since a deploy about 90 minutes ago that bumped the image-processing dependency, order-worker pods are OOMKilled every 20-30 minutes and job throughput is down by more than half.",
+    "error_message": "Pod order-worker OOMKilled: container memory working set reached its limit",
+    "log_snippet": "2026-09-27T18:30:00Z WARN kubernetes [kubelet] Pod order-worker-5d7c OOMKilled reason=Evicted container_memory_working_set_bytes=2147483648\nrestart_count=11 image_resize_lib=v4.3.0"
+  },
+  "A": {
+    "ok": true,
+    "degraded": false,
+    "model_used": "openai/gpt-oss-120b",
+    "latency_s": 4.069,
+    "response": {
+      "root_cause": "Memory usage spike caused by the upgraded image-processing dependency exceeding the pod's memory limit, leading to OOMKilled restarts",
+      "blast_radius": "All order-worker pods are affected, reducing order processing throughput by >50% and potentially delaying order fulfillment downstream",
+      "first_actions": [
+        "Inspect current memory limits and actual usage of order-worker pods via metrics and logs",
+        "Rollback the image-processing dependency to the previous version or redeploy the prior container image",
+        "If rollback isn\u2019t viable, adjust the pod memory requests/limits to accommodate the higher usage"
+      ],
+      "last_fixed_by": null
+    },
+    "raw_text": "{\"root_cause\":\"Memory usage spike caused by the upgraded image-processing dependency exceeding the pod's memory limit, leading to OOMKilled restarts\",\"blast_radius\":\"All order-worker pods are affected, reducing order processing throughput by >50% and potentially delaying order fulfillment downstream\",\"first_actions\":[\"Inspect current memory limits and actual usage of order-worker pods via metrics and logs\",\"Rollback the image-processing dependency to the previous version or redeploy the prior container image\",\"If rollback isn\u2019t viable, adjust the pod memory requests/limits to accommodate the higher usage\"],\"last_fixed_by\":null}",
+    "llm_calls": [
+      {
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are an incident response assistant writing a short triage briefing for a new alert. You only have the alert below.\nRespond with strict JSON only: {\"root_cause\": string, \"blast_radius\": string, \"first_actions\": [string, string, string], \"last_fixed_by\": string or null}"
+          },
+          {
+            "role": "user",
+            "content": "New alert: Worker pods restarting in a loop after a dependency bump. Service: order-worker, severity: SEV1.\nSymptoms: Since a deploy about 90 minutes ago that bumped the image-processing dependency, order-worker pods are OOMKilled every 20-30 minutes and job throughput is down by more than half.\nError: Pod order-worker OOMKilled: container memory working set reached its limit"
+          }
+        ],
+        "kwargs": {
+          "json_mode": true
+        },
+        "text": "{\"root_cause\":\"Memory usage spike caused by the upgraded image-processing dependency exceeding the pod's memory limit, leading to OOMKilled restarts\",\"blast_radius\":\"All order-worker pods are affected, reducing order processing throughput by >50% and potentially delaying order fulfillment downstream\",\"first_actions\":[\"Inspect current memory limits and actual usage of order-worker pods via metrics and logs\",\"Rollback the image-processing dependency to the previous version or redeploy the prior container image\",\"If rollback isn\u2019t viable, adjust the pod memory requests/limits to accommodate the higher usage\"],\"last_fixed_by\":null}",
+        "degraded": false,
+        "model_used": "openai/gpt-oss-120b",
+        "parsed": {
+          "root_cause": "Memory usage spike caused by the upgraded image-processing dependency exceeding the pod's memory limit, leading to OOMKilled restarts",
+          "blast_radius": "All order-worker pods are affected, reducing order processing throughput by >50% and potentially delaying order fulfillment downstream",
+          "first_actions": [
+            "Inspect current memory limits and actual usage of order-worker pods via metrics and logs",
+            "Rollback the image-processing dependency to the previous version or redeploy the prior container image",
+            "If rollback isn\u2019t viable, adjust the pod memory requests/limits to accommodate the higher usage"
+          ],
+          "last_fixed_by": null
+        },
+        "seconds": 4.069
+      }
+    ]
+  },
+  "B": {
+    "ok": true,
+    "degraded": false,
+    "degraded_reason": null,
+    "path": "generate_sections",
+    "template_fallback": false,
+    "latency_s": 6.144,
+    "analysis_latency_s": 1.475,
+    "models_used": [
+      "openai/gpt-oss-120b"
+    ],
+    "response": {
+      "root_cause": "The OOM kills are caused by a memory leak in the newly upgraded image\u2011resize library (v4.2.0) that allocates native buffers on each thumbnail generation, causing RSS to grow until the container is killed (see INC-016).",
+      "blast_radius": "All order\u2011worker pods are affected, reducing job processing throughput by ~60% and potentially delaying order fulfillment for any downstream services that rely on completed jobs.",
+      "first_actions": [
+        "rollback_image_resize_library_version",
+        "temporarily raise the memory limit of order\u2011worker pods to prevent immediate OOM while the rollback is applied",
+        "enable continuous monitoring of pod memory usage and OOM events to catch regressions early"
+      ],
+      "last_fixed_by": "David Kim"
+    },
+    "cited_incident_ids": [
+      "INC-016"
+    ],
+    "structured": {
+      "memory_state": "matched",
+      "evidence": [
+        {
+          "incident_id": "INC-016",
+          "date": "2026-07-21T17:03:26Z",
+          "relative": "2 months ago",
+          "service": "order-worker",
+          "severity": "SEV1",
+          "excerpt": "order-worker pods repeatedly OOMKilled every 20-30 minutes since a deploy 2 hours ago; job processing throughput down 60%.",
+          "relevance": 1.0,
+          "source_bank": "incidents"
+        }
+      ],
+      "ranked_fixes": [
+        {
+          "rank": 1,
+          "fix_type": "rollback_image_resize_library_version",
+          "label": "Rollback image resize library version",
+          "score": 0.6667,
+          "similarity": 1.0,
+          "worked": 1,
+          "partial": 0,
+          "failed": 0,
+          "attempts": 1,
+          "recent_failures": 0,
+          "last_used_incident_id": "INC-016"
+        }
+      ],
+      "warnings": [
+        {
+          "kind": "recurrence",
+          "message": "This is occurrence #2 of this pattern.",
+          "incident_ids": [
+            "INC-016"
+          ]
+        }
+      ],
+      "team_hint": {
+        "person": "David Kim",
+        "reason": "Resolved 1 incident matching this pattern with a working fix.",
+        "incident_ids": [
+          "INC-016"
+        ]
+      },
+      "recurrence": {
+        "occurrence_number": 2,
+        "interval_days_avg": null,
+        "open_permanent_fix_incident_id": null,
+        "message": "This is occurrence #2 of this pattern."
+      }
+    },
+    "llm_calls": [
+      {
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are an incident response assistant writing a short triage briefing. Use ONLY the evidence incidents listed below. You may reference an incident ID (like INC-002) ONLY if it appears in that evidence list -- never invent or cite any other incident ID, and never make one up.\nRULES:\n  1. first_actions[0] MUST recommend the top-ranked fix: 'rollback_image_resize_library_version'.\n  2. No first_action may recommend any fix whose ledger failures exceed its successes.\n  3. Cite at least one evidence incident ID somewhere in root_cause or first_actions.\nRespond with strict JSON only: {\"root_cause\": string, \"blast_radius\": string, \"first_actions\": [string, string, string], \"last_fixed_by\": string or null}"
+          },
+          {
+            "role": "user",
+            "content": "New alert: Worker pods restarting in a loop after a dependency bump. Service: order-worker, severity: SEV1.\nSymptoms: Since a deploy about 90 minutes ago that bumped the image-processing dependency, order-worker pods are OOMKilled every 20-30 minutes and job throughput is down by more than half.\nError: Pod order-worker OOMKilled: container memory working set reached its limit\n\nEvidence (only these incidents may be cited):\nIncident INC-016 (order-worker, SEV1, 2026-07-21T17:03:26Z):\nSymptoms: order-worker pods repeatedly OOMKilled every 20-30 minutes since a deploy 2 hours ago; job processing throughput down 60%.\nRoot cause: A newly upgraded image-resize library (v4.2.0) leaks native memory buffers on each thumbnail generation call, growing pod RSS until the kubelet OOM-kills the container.\nResolver: David Kim\n\nRanked fixes (use the top one as first_actions[0]):\n  1. rollback_image_resize_library_version (score=+0.667, worked=1, partial=0, failed=0, recent_failures=0)\nRecurrence: This is occurrence #2 of this pattern.\nTeam expert: David Kim (Resolved 1 incident matching this pattern with a working fix.)"
+          }
+        ],
+        "kwargs": {
+          "json_mode": true
+        },
+        "text": "{\"root_cause\":\"The OOM kills are caused by a memory leak in the newly upgraded image\u2011resize library (v4.2.0) that allocates native buffers on each thumbnail generation, causing RSS to grow until the container is killed (see INC-016).\",\"blast_radius\":\"All order\u2011worker pods are affected, reducing job processing throughput by ~60% and potentially delaying order fulfillment for any downstream services that rely on completed jobs.\",\"first_actions\":[\"rollback_image_resize_library_version\",\"temporarily raise the memory limit of order\u2011worker pods to prevent immediate OOM while the rollback is applied\",\"enable continuous monitoring of pod memory usage and OOM events to catch regressions early\"],\"last_fixed_by\":\"David Kim\"}",
+        "degraded": false,
+        "model_used": "openai/gpt-oss-120b",
+        "parsed": {
+          "root_cause": "The OOM kills are caused by a memory leak in the newly upgraded image\u2011resize library (v4.2.0) that allocates native buffers on each thumbnail generation, causing RSS to grow until the container is killed (see INC-016).",
+          "blast_radius": "All order\u2011worker pods are affected, reducing job processing throughput by ~60% and potentially delaying order fulfillment for any downstream services that rely on completed jobs.",
+          "first_actions": [
+            "rollback_image_resize_library_version",
+            "temporarily raise the memory limit of order\u2011worker pods to prevent immediate OOM while the rollback is applied",
+            "enable continuous monitoring of pod memory usage and OOM events to catch regressions early"
+          ],
+          "last_fixed_by": "David Kim"
+        },
+        "seconds": 4.669
+      }
+    ]
+  }
+}

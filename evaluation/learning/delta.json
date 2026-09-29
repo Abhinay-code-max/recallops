@@ -1,0 +1,126 @@
+{
+  "fix_deltas": [
+    {
+      "fix_type": "increase_postgres_pool_size",
+      "score_before": 0.6598,
+      "score_after": 0.533,
+      "absolute_score_delta": -0.1268,
+      "rank_before": 1,
+      "rank_after": 1,
+      "rank_delta": 0,
+      "worked_delta": 0,
+      "partial_delta": 0,
+      "failed_delta": 0,
+      "warning_before": false,
+      "warning_after": false
+    },
+    {
+      "fix_type": "kill_idle_db_connections",
+      "score_before": 0.4358,
+      "score_after": 0.4338,
+      "absolute_score_delta": -0.002,
+      "rank_before": 2,
+      "rank_after": 2,
+      "rank_delta": 0,
+      "worked_delta": 1,
+      "partial_delta": 0,
+      "failed_delta": 0,
+      "warning_before": false,
+      "warning_after": false
+    },
+    {
+      "fix_type": "restart_payments_pods",
+      "score_before": 0.4124,
+      "score_after": 0.3331,
+      "absolute_score_delta": -0.0793,
+      "rank_before": 3,
+      "rank_after": 3,
+      "rank_delta": 0,
+      "worked_delta": 0,
+      "partial_delta": 0,
+      "failed_delta": 0,
+      "warning_before": false,
+      "warning_after": false
+    },
+    {
+      "fix_type": "rollback_to_previous_deploy",
+      "score_before": -0.0938,
+      "score_after": 0.1666,
+      "absolute_score_delta": 0.2604,
+      "rank_before": 4,
+      "rank_after": 4,
+      "rank_delta": 0,
+      "worked_delta": 0,
+      "partial_delta": 0,
+      "failed_delta": 0,
+      "warning_before": true,
+      "warning_after": true
+    }
+  ],
+  "recommendation_order_before": [
+    "increase_postgres_pool_size",
+    "kill_idle_db_connections",
+    "restart_payments_pods",
+    "rollback_to_previous_deploy"
+  ],
+  "recommendation_order_after": [
+    "increase_postgres_pool_size",
+    "kill_idle_db_connections",
+    "restart_payments_pods",
+    "rollback_to_previous_deploy"
+  ],
+  "recommendation_order_changed": false,
+  "top_recommendation_changed": false,
+  "warning_kinds_before": [
+    "failed_fix",
+    "open_permanent_fix",
+    "recurrence"
+  ],
+  "warning_kinds_after": [
+    "failed_fix",
+    "open_permanent_fix",
+    "recurrence"
+  ],
+  "warning_behavior_changed": true,
+  "evidence_ids_before": [
+    "INC-002",
+    "INC-021",
+    "INC-009",
+    "INC-017"
+  ],
+  "evidence_ids_after": [
+    "INC-002",
+    "INC-021",
+    "INC-009",
+    "INC-017",
+    "INC-023"
+  ],
+  "evidence_changed": true,
+  "evidence_added": [
+    "INC-023"
+  ],
+  "evidence_removed": [],
+  "recurrence_before": {
+    "occurrence_number": 5,
+    "interval_days_avg": 35.0,
+    "open_permanent_fix_incident_id": "INC-021",
+    "message": "This is occurrence #5 of this pattern, recurring roughly every 35 days. The permanent fix from INC-021 is still open."
+  },
+  "recurrence_after": {
+    "occurrence_number": 6,
+    "interval_days_avg": 29.8,
+    "open_permanent_fix_incident_id": "INC-021",
+    "message": "This is occurrence #6 of this pattern, recurring roughly every 29.8 days. The permanent fix from INC-021 is still open."
+  },
+  "immediate_feedback_response": {
+    "explanation": "Same-incident response immediately after the one feedback event; unlike the next-incident comparison, the recall query is unchanged.",
+    "fix_type": "kill_idle_db_connections",
+    "score_before": 0.4358,
+    "score_after_feedback": 0.7,
+    "absolute_score_delta": 0.2642,
+    "rank_before": 2,
+    "rank_after_feedback": 1,
+    "worked_before": 1,
+    "worked_after_feedback": 2
+  }
+}
