@@ -80,6 +80,9 @@ class RecallOpsApi {
       } catch {
         // use fallback errorMsg
       }
+      if (res.status === 401 && errorMsg.toLowerCase() === 'unauthorized') {
+        errorMsg = 'Operator authorization required for this action. The operator key is not set for this browser session.';
+      }
       throw new Error(errorMsg);
     }
 

@@ -11,9 +11,13 @@ When hardened:
     the predefined server-side demo alerts (backend/data/demo_alerts.json). A match is replaced by
     the canonical server copy, so callers cannot inject text through the public demo path.
     Custom alert text without a key is rejected.
-  * POST /feedback, POST /resolve stay public because the browser demo calls them directly (a key
-    in the React bundle would not be a secret). They are narrowed instead: live incidents only,
-    known fix types only, per-incident caps, resolve-once. See check_feedback_allowed/check_resolve_allowed.
+  * POST /feedback, POST /resolve -> also require ADMIN_API_KEY (an ingest-only key is NOT enough):
+    anonymous feedback could flip rankings and anonymous resolves write LLM-processed text into memory.
+    On top of the key they stay narrowed: live incidents only, known fix types, per-incident cap,
+    resolve-once (see check_feedback_allowed/check_resolve_allowed). The operator sets the key in the
+    browser at runtime (sessionStorage 'recallops_key'); it is never bundled.
+  * Request bodies: the ACTUAL received bytes are counted against MAX_BODY_BYTES (Content-Length is
+    only an early hint), so a false or missing Content-Length cannot bypass the cap.
   * Per-IP and global in-process rate limits (HTTP 429) on the expensive routes.
 
 No secret is ever logged or returned. Keys are compared in constant time. CORS is NOT authentication
@@ -119,6 +123,9 @@ def _rule_for(method: str, path: str) -> tuple[str, int, int] | None:
     return _READ_RULE if method == "GET" else None
 
 
+_ADMIN_POST_PATHS = ("/seed", "/reset", "/feedback", "/resolve")
+
+
 def _client_ip(scope: dict[str, Any], headers: dict[bytes, bytes]) -> str:
     hops = config.trusted_proxy_hops()
     if hops > 0:
@@ -130,6 +137,35 @@ def _client_ip(scope: dict[str, Any], headers: dict[bytes, bytes]) -> str:
 
 
 # --- ASGI middleware ------------------------------------------------------------------------
+async def _buffer_body(receive) -> tuple[list[dict[str, Any]], bool]:
+    """Read http.request frames until the body ends, counting ACTUAL bytes. Stops as soon as the
+    cumulative size exceeds MAX_BODY_BYTES, so at most limit+one frame is ever held in memory.
+    Returns (frames, exceeded)."""
+    frames: list[dict[str, Any]] = []
+    total = 0
+    while True:
+        message = await receive()
+        frames.append(message)
+        if message["type"] != "http.request":  # e.g. http.disconnect: hand it to the app as-is
+            return frames, False
+        total += len(message.get("body", b""))
+        if total > MAX_BODY_BYTES:
+            return frames, True
+        if not message.get("more_body", False):
+            return frames, False
+
+
+def _replay(frames: list[dict[str, Any]], receive):
+    pending = list(frames)
+
+    async def replay() -> dict[str, Any]:
+        if pending:
+            return pending.pop(0)
+        return await receive()
+
+    return replay
+
+
 async def _respond(send, status: int, code: str, message: str, extra: list[tuple[bytes, bytes]] | None = None) -> None:
     body = json.dumps({"detail": {"error": {"code": code, "message": message}}}).encode()
     await send({
@@ -153,7 +189,8 @@ class SecurityMiddleware:
         method, path = scope["method"], scope["path"]
         headers = {k.lower(): v for k, v in scope.get("headers", [])}
 
-        # Always on: bound request bodies (Content-Length; chunked bodies are refused on writes).
+        # Always on: bound request bodies by what is ACTUALLY received. Content-Length is only an
+        # early rejection hint; a false or missing one cannot bypass the cap.
         if method in ("POST", "PUT", "PATCH"):
             length = headers.get(b"content-length")
             if length is not None:
@@ -164,11 +201,17 @@ class SecurityMiddleware:
                 if too_big:
                     await _respond(send, 413, "payload_too_large", "request body too large")
                     return
-            elif b"chunked" in headers.get(b"transfer-encoding", b"").lower():
-                await _respond(send, 411, "length_required", "content-length required")
+            frames, exceeded = await _buffer_body(receive)
+            if exceeded:
+                await _respond(send, 413, "payload_too_large", "request body too large")
                 return
+            receive = _replay(frames, receive)
 
         if hardened() and method != "OPTIONS":
+            # Ambiguous credentials: several X-RecallOps-Key headers are rejected outright.
+            if sum(1 for k, _ in scope.get("headers", []) if k.lower() == KEY_HEADER) > 1:
+                await _respond(send, 401, "unauthorized", "unauthorized")
+                return
             rule = _rule_for(method, path)
             if rule is not None:
                 name, per_ip, global_limit = rule
@@ -177,7 +220,7 @@ class SecurityMiddleware:
                     logger.warning("rate limit exceeded bucket=%s", name)
                     await _respond(send, 429, "rate_limited", "too many requests", [(b"retry-after", b"60")])
                     return
-            if method == "POST" and path in ("/seed", "/reset"):
+            if method == "POST" and path in _ADMIN_POST_PATHS:
                 presented = headers.get(KEY_HEADER, b"").decode("latin-1")
                 if not is_admin(presented):
                     logger.warning("unauthorized admin request path=%s", path)

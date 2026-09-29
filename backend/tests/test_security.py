@@ -126,32 +126,32 @@ def test_development_stays_open_for_local_use(isolated):
 
 # ---------------------------------------------------------------- feedback / resolve
 def test_feedback_rejected_for_seed_incident(prod):
-    r = prod.post("/feedback", json={"incident_id": "INC-002", "fix_type": "increase_postgres_pool_size", "outcome": "worked"})
+    r = prod.post("/feedback", json={"incident_id": "INC-002", "fix_type": "increase_postgres_pool_size", "outcome": "worked"}, headers=admin())
     assert r.status_code == 403
 
 
 def test_feedback_rejects_unknown_fix_type_and_caps_count(prod):
     inc = make_live_incident()
     body = {"incident_id": inc, "fix_type": "drop_all_tables", "outcome": "failed"}
-    assert prod.post("/feedback", json=body).status_code == 422
+    assert prod.post("/feedback", json=body, headers=admin()).status_code == 422
     ok = {"incident_id": inc, "fix_type": "increase_postgres_pool_size", "outcome": "worked"}
     for _ in range(security.MAX_FEEDBACK_PER_INCIDENT):
-        assert prod.post("/feedback", json=ok).status_code == 200
+        assert prod.post("/feedback", json=ok, headers=admin()).status_code == 200
         security.reset_limiter()  # isolate the per-incident cap from the rate limit
-    assert prod.post("/feedback", json=ok).status_code == 429
+    assert prod.post("/feedback", json=ok, headers=admin()).status_code == 429
 
 
 def test_feedback_valid_on_live_incident_works(prod, isolated):
     inc = make_live_incident()
-    r = prod.post("/feedback", json={"incident_id": inc, "fix_type": "increase_postgres_pool_size", "outcome": "worked"})
+    r = prod.post("/feedback", json={"incident_id": inc, "fix_type": "increase_postgres_pool_size", "outcome": "worked"}, headers=admin())
     assert r.status_code == 200 and isolated["retain"] == 1
 
 
 def test_resolve_rejected_for_seed_and_repeat(prod):
-    assert prod.post("/resolve", json={"incident_id": "INC-002", "resolver": "x"}).status_code == 403
+    assert prod.post("/resolve", json={"incident_id": "INC-002", "resolver": "x"}, headers=admin()).status_code == 403
     inc = make_live_incident()
-    assert prod.post("/resolve", json={"incident_id": inc, "resolver": "Test Engineer"}).status_code == 200
-    assert prod.post("/resolve", json={"incident_id": inc, "resolver": "Someone Else"}).status_code == 409
+    assert prod.post("/resolve", json={"incident_id": inc, "resolver": "Test Engineer"}, headers=admin()).status_code == 200
+    assert prod.post("/resolve", json={"incident_id": inc, "resolver": "Someone Else"}, headers=admin()).status_code == 409
 
 
 # ---------------------------------------------------------------- alert ingestion

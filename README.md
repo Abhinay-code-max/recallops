@@ -160,14 +160,15 @@ hardened mode (also enabled whenever `ADMIN_API_KEY` or `INGEST_API_KEY` is set)
 |---|---|
 | `POST /seed`, `POST /reset` | `ADMIN_API_KEY` in the `X-RecallOps-Key` header (fails closed if unset in production); 5/min per IP |
 | `POST /alert` | `INGEST_API_KEY` (or the admin key), **or** content that exactly matches a predefined demo alert, which is replaced by the server's copy; 10/min per IP |
-| `POST /feedback`, `POST /resolve` | Public (the browser demo calls them), narrowed to live incidents, known fix types, 12 feedback per incident, resolve once; rate limited |
+| `POST /feedback`, `POST /resolve` | `ADMIN_API_KEY` (an ingest-only key is rejected), plus live incidents only, known fix types, 12 feedback per incident, resolve once |
 | `POST /chat`, `POST /compare`, briefing stream | Public, rate limited, input length limits |
 
 Request bodies are capped at 64 KB and text fields have length limits (422 when exceeded). Keys live only in
 server env vars: **never** put them in `VITE_*` or the frontend bundle. An operator can use the UI's Seed/Reset
-buttons or custom alerts by running `sessionStorage.setItem('recallops_key', '<key>')` in the browser console.
-Set `RATE_LIMIT_TRUSTED_HOPS` to the number of proxy hops that append to `X-Forwarded-For` (default 0). Rate
-limits are per process; feedback is still open to abuse within its caps, and there is no user authentication.
+buttons, feedback, resolve or custom alerts by running `sessionStorage.setItem('recallops_key', '<key>')` in the browser console.
+Keep `RATE_LIMIT_TRUSTED_HOPS=0` (default) unless the proxy chain in front of the app has been independently
+verified; otherwise callers can forge `X-Forwarded-For` to dodge per-IP limits. Global limits always apply. Rate
+limits are per process, request bodies are counted by bytes actually received, and there is no user authentication.
 
 ## Configuration
 
